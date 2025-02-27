@@ -15,8 +15,8 @@ int main(int argc, char**argv)
         // Check si le .conf est bon (.conf a la fin), si on peut l'ouvrir et le lire
         Server server;
         server.ParseConfigurationFile(argv[1]); // Lire le fichier et mettre les infos dans les private du server
-        server.InitSocket(void);                // Initialiser les sockets pour chaque server et les mettres en ecoute
-        server.ManageConnection(void);          // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+        server.InitSocket();                // Initialiser les sockets pour chaque server et les mettres en ecoute
+        server.ManageConnection();          // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return (1);

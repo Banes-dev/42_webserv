@@ -1,19 +1,30 @@
 #pragma once
 
 #include <iostream>  	// base
-#include <cstdlib>		// atof
 #include <fstream>		// file gestion
 #include <sstream>		// text gestion
-#include <vector> 		// vector
-#include <deque> 		// deque
+#include <map> 			// map
 #include <algorithm> 	// algo
-#include <ctime>		// time
+#include <unistd.h>		// close etc
+#include <sys/socket.h> // socket
+#include <netinet/in.h> // net
+#include <sys/epoll.h>  // epoll
+#include <fcntl.h>		// fcntl
+#include <csignal> 		// signal
 
 #include "Utils.hpp"
 
 
+#define PORT 8080
+#define MAX_EVENTS 100
+
 class Server
 {
+	private:
+		int server_fd;
+		int epoll_fd;
+		struct sockaddr_in address;
+		socklen_t addrlen;
 	public:
 		Server();
 		Server(const Server &copy);
@@ -21,33 +32,45 @@ class Server
 		~Server();
 
 		// Other function
-		static std::vector<size_t> ConvertVector(char **argv);
-		static std::deque<size_t> ConvertDeque(char **argv);
-		
-		static const std::vector<size_t> VectorTime(std::vector<size_t> list, double &time);
-		static const std::deque<size_t> DequeTime(std::deque<size_t> list, double &time);
-		
-		static void PrintVector(const std::vector<size_t> &list);
-		static void PrintDeque(const std::deque<size_t> &list);
-
-		// Utils function
-		static std::vector<size_t> VectorSort(std::vector<size_t> list);
-		static std::deque<size_t> DequeSort(std::deque<size_t> list);
-
-		static bool VectorIsSorted(std::vector<size_t> &list);
-		static bool DequeIsSorted(std::deque<size_t> &list);
+        void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server
+        void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
+        void ManageConnection(void);          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
 
 		// Exceptions
-		class InvalidArgsException : public std::exception {
+		class SocketException : public std::exception {
 			public:
 				virtual const char *what() const throw() {
-					return ("\033[0;31mInvalid argument\033[0m");
+					return ("\033[0;31mSocket error\033[0m");
 				}
 		};
-		class NegativeArgsException : public std::exception {
+		class BindException : public std::exception {
 			public:
 				virtual const char *what() const throw() {
-					return ("\033[0;31mNegative number not accepted\033[0m");
+					return ("\033[0;31mBind error\033[0m");
+				}
+		};
+		class ListenException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mListen error\033[0m");
+				}
+		};
+		class EpollException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mEpoll error\033[0m");
+				}
+		};
+		class EpollWaitException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mEpoll_Wait error\033[0m");
+				}
+		};
+		class AcceptException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mAccept error\033[0m");
 				}
 		};
 };

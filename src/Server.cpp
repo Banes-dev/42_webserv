@@ -23,287 +23,132 @@ Server::~Server(void)
 
 
 // Other function
-std::vector<size_t> Server::ConvertVector(char **argv)
+void Server::ParseConfigurationFile(std::string arg)
 {
-	std::vector<size_t> list;
-	int i = 0;
-	while (argv[i])
-	{
-		if (std::atof(argv[i]) < 0)
-			throw NegativeArgsException();
-		std::stringstream ss(argv[i]);
-		size_t num;
-		ss >> num;
-		if (ss.fail())
-			throw InvalidArgsException();
-		list.push_back(num);
-		i++;
-	}
-	return (list);
-}
-std::deque<size_t> Server::ConvertDeque(char **argv)
-{
-	std::deque<size_t> list;
-	int i = 0;
-	while (argv[i])
-	{
-		if (std::atof(argv[i]) < 0)
-			throw NegativeArgsException();
-		std::stringstream ss(argv[i]);
-		size_t num;
-		ss >> num;
-		if (ss.fail())
-			throw InvalidArgsException();
-		list.push_back(num);
-		i++;
-	}
-	return (list);
+	std::cout << "Parse conf file : " << arg << std::endl;
 }
 
-const std::vector<size_t> Server::VectorTime(std::vector<size_t> list, double &time)
+bool running = true;
+void handle_signal(int signal)
 {
-	std::clock_t start = std::clock();
-	list = VectorSort(list);
-	std::clock_t end = std::clock();
-	time = ((end - start) * 1000000) / CLOCKS_PER_SEC;
-	return (list);
-}
-const std::deque<size_t> Server::DequeTime(std::deque<size_t> list, double &time)
-{
-	std::clock_t start = std::clock();
-	list = DequeSort(list);
-	std::clock_t end = std::clock();
-	time = ((end - start) * 1000000) / CLOCKS_PER_SEC;
-	return (list);
+    if (signal == SIGINT)
+        running = false;
 }
 
-void Server::PrintVector(const std::vector<size_t> &list)
+void Server::InitSocket(void)
 {
-	std::vector<size_t>::const_iterator it = list.begin();
-	while (it != list.end())
-	{
-		std::cout << *it << " ";
-		it++;
-	}
-}
-void Server::PrintDeque(const std::deque<size_t> &list)
-{
-	std::deque<size_t>::const_iterator it = list.begin();
-	while (it != list.end())
-	{
-		std::cout << *it << " ";
-		it++;
-	}
+	signal(SIGINT, handle_signal);
+	std::cout << "Init socket" << std::endl;
+
+    // 1. Création du socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == 0)
+		throw SocketException();
+	int flags = fcntl(server_fd, F_GETFL, 0);
+    fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
+
+    // 2. Configuration de l'adresse
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+	addrlen = sizeof(address);
+
+    // 3. Liaison du socket au port
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+		throw BindException();
+
+    // 4. Mise en écoute
+    if (listen(server_fd, SOMAXCONN) < 0)
+		throw ListenException();
+
+    std::cout << "Serveur en écoute sur le port " << PORT << "...\n";
+
+    // 5. Création de l'instance epoll
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd < 0)
+		throw EpollException();
+
+    // 6. Ajout du socket serveur à epoll
+    struct epoll_event ev;
+    ev.events = EPOLLIN;  // Surveille les nouvelles connexions
+    ev.data.fd = server_fd;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev);
 }
 
-// Utils function
-/////////////////////////// Vector ///////////////////////////
-// Générer la suite de Jacobsthal jusqu'à une limite donnée
-std::vector<size_t> VectorGenerateJacobsthalSequence(int n)
+void Server::ManageConnection(void)
 {
-    std::vector<size_t> jacobsthal;
-    jacobsthal.push_back(0);
-    jacobsthal.push_back(1);
+	std::cout << "Manage connection" << std::endl;
 
-    while ((int)jacobsthal.size() < n)
+	// 7. Boucle principale
+    struct epoll_event events[MAX_EVENTS];
+    while (running)
 	{
-        int next = jacobsthal[jacobsthal.size() - 1] + 2 * jacobsthal[jacobsthal.size() - 2];
-        jacobsthal.push_back(next);
-    }
-    return (jacobsthal);
-}
-// Tri par insertion
-void VectorInsertionSort(std::vector<size_t> &arr)
-{
-    for (size_t i = 1; i < arr.size(); i++)
-	{
-        size_t key = arr[i];
-        size_t j = i;
-        
-        // Décaler les éléments plus grands vers la droite
-        while (j > 0 && arr[j - 1] > key)
+        int event_count = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        if (event_count < 0)
 		{
-            arr[j] = arr[j - 1];
-            j--;
-        }
+			if (errno == EINTR)
+				continue;
+			throw EpollWaitException();
+		}
 
-        // Insérer l'élément à la bonne place
-        arr[j] = key;
-    }
-}
-// Recherche binaire
-void VectorBinaryInsert(std::vector<size_t> &sortedList, int element)
-{
-    std::vector<size_t>::iterator it = std::lower_bound(sortedList.begin(), sortedList.end(), element);
-    sortedList.insert(it, element);
-}
-std::vector<size_t> Server::VectorSort(std::vector<size_t> list)
-{
-	if (VectorIsSorted(list) == true)
-		return (list);
-
-    // Étape 1 : Créer des paires triées
-    std::vector<std::pair<size_t, size_t> > pairs;
-    std::vector<size_t> remaining;
-    
-    for (size_t i = 0; i + 1 < list.size(); i += 2)
-	{
-        if (list[i] > list[i + 1]) std::swap(list[i], list[i + 1]);
-        pairs.push_back(std::make_pair(list[i], list[i + 1]));
-    }
-
-    // Ajouter l'élément restant s'il y a un nombre impair d'éléments
-    if (list.size() % 2 == 1) remaining.push_back(list.back());
-
-    // Étape 2 : Trier les petits éléments des paires
-    std::vector<size_t> sortedList;
-    for (size_t i = 0; i < pairs.size(); i++)
-		sortedList.push_back(pairs[i].first);
-
-	VectorInsertionSort(sortedList);
-	// PrintVector(sortedList); std::cout << std::endl;
-
-    // Étape 3 : Insérer les grands éléments des paires avec Jacobsthal
-    std::vector<size_t> jacobsthal = VectorGenerateJacobsthalSequence(pairs.size());
-
-    for (size_t i = 1; i < jacobsthal.size() && i - 1 < pairs.size(); i++)
-	{
-        size_t idx = jacobsthal[i] - 1; // La suite de Jacobsthal commence à 1 en général
-        if (idx >= pairs.size()) break;
-        VectorBinaryInsert(sortedList, pairs[idx].second);
-    }
-	// Vérifier que tous les grands éléments des paires ont été insérés
-	for (size_t i = 0; i < pairs.size(); i++)
-	{
-		if (std::find(sortedList.begin(), sortedList.end(), pairs[i].second) == sortedList.end())
-			VectorBinaryInsert(sortedList, pairs[i].second);
-	}
-
-    // Étape 4 : Insérer l’élément restant
-
-    for (size_t i = 0; i < remaining.size(); i++)
-        VectorBinaryInsert(sortedList, remaining[i]);
-
-    return (sortedList);
-}
-
-/////////////////////////// Deque ///////////////////////////
-// Générer la suite de Jacobsthal jusqu'à une limite donnée
-std::deque<size_t> DequeGenerateJacobsthalSequence(int n)
-{
-    std::deque<size_t> jacobsthal;
-    jacobsthal.push_back(0);
-    jacobsthal.push_back(1);
-
-    while ((int)jacobsthal.size() < n)
-	{
-        int next = jacobsthal[jacobsthal.size() - 1] + 2 * jacobsthal[jacobsthal.size() - 2];
-        jacobsthal.push_back(next);
-    }
-    return (jacobsthal);
-}
-// Tri par insertion
-void DequeInsertionSort(std::deque<size_t> &arr)
-{
-    for (size_t i = 1; i < arr.size(); i++)
-	{
-        size_t key = arr[i];
-        size_t j = i;
-        
-        // Décaler les éléments plus grands vers la droite
-        while (j > 0 && arr[j - 1] > key)
+        // 8. Parcours des événements détectés
+        for (int i = 0; i < event_count; i++)
 		{
-            arr[j] = arr[j - 1];
-            j--;
+            int event_fd = events[i].data.fd;
+
+            // 8.1 Nouvelle connexion entrante
+            if (event_fd == server_fd)
+			{
+                int new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen);
+                if (new_socket < 0)
+				{
+                    std::cerr << "Accept error" << std::endl;
+                    continue;
+                }
+                std::cout << "Nouvelle connexion acceptée !\n";
+
+                // Met le client en mode non-bloquant
+				int flags = fcntl(new_socket, F_GETFL, 0);
+    			fcntl(new_socket, F_SETFL, flags | O_NONBLOCK);
+
+                // Ajoute le client à epoll
+                struct epoll_event client_ev;
+                client_ev.events = EPOLLIN | EPOLLET; // Lecture en mode Edge Triggered
+                client_ev.data.fd = new_socket;
+                epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, &client_ev);
+            }
+            // 8.2 Requête d'un client existant
+            else {
+                char buffer[1024] = {0};
+                int valread = read(event_fd, buffer, 1024);
+
+                if (valread <= 0)
+				{
+                    // Déconnexion du client
+                    std::cout << "Client déconnecté.\n";
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                    close(event_fd);
+                }
+				else {
+                    std::cout << "Requête reçue : " << buffer << std::endl;
+
+                    // Réponse HTTP basique
+                    std::string response =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Length: 13\r\n"
+                        "\r\n"
+                        "Hello, Client!";
+
+                    send(event_fd, response.c_str(), response.size(), 0);
+                }
+            }
         }
-
-        // Insérer l'élément à la bonne place
-        arr[j] = key;
     }
-}
-// Recherche binaire
-void DequeBinaryInsert(std::deque<size_t> &sortedList, int element)
-{
-    std::deque<size_t>::iterator it = std::lower_bound(sortedList.begin(), sortedList.end(), element);
-    sortedList.insert(it, element);
-}
-std::deque<size_t> Server::DequeSort(std::deque<size_t> list)
-{
-	if (DequeIsSorted(list) == true)
-		return (list);
-
-    // Étape 1 : Créer des paires triées
-    std::deque<std::pair<size_t, size_t> > pairs;
-    std::deque<size_t> remaining;
     
-    for (size_t i = 0; i + 1 < list.size(); i += 2)
-	{
-        if (list[i] > list[i + 1]) std::swap(list[i], list[i + 1]);
-        pairs.push_back(std::make_pair(list[i], list[i + 1]));
-    }
-
-    // Ajouter l'élément restant s'il y a un nombre impair d'éléments
-    if (list.size() % 2 == 1) remaining.push_back(list.back());
-
-    // Étape 2 : Trier les petits éléments des paires
-    std::deque<size_t> sortedList;
-    for (size_t i = 0; i < pairs.size(); i++)
-		sortedList.push_back(pairs[i].first);
-
-	DequeInsertionSort(sortedList);
-
-    // Étape 3 : Insérer les grands éléments des paires avec Jacobsthal
-    std::deque<size_t> jacobsthal = DequeGenerateJacobsthalSequence(pairs.size());
-
-    for (size_t i = 1; i < jacobsthal.size() && i - 1 < pairs.size(); i++)
-	{
-        size_t idx = jacobsthal[i] - 1; // La suite de Jacobsthal commence à 1 en général
-        if (idx >= pairs.size()) break;
-        DequeBinaryInsert(sortedList, pairs[idx].second);
-    }
-	// Vérifier que tous les grands éléments des paires ont été insérés
-	for (size_t i = 0; i < pairs.size(); i++)
-	{
-		if (std::find(sortedList.begin(), sortedList.end(), pairs[i].second) == sortedList.end())
-			DequeBinaryInsert(sortedList, pairs[i].second);
-	}
-
-    // Étape 4 : Insérer l’élément restant
-    for (size_t i = 0; i < remaining.size(); i++)
-        DequeBinaryInsert(sortedList, remaining[i]);
-
-    return (sortedList);
-}
-
-bool Server::VectorIsSorted(std::vector<size_t> &list)
-{
-	if (list.size() <= 1)
-		return (true);
-	std::vector<size_t>::iterator it = list.begin();
-	size_t prev = *it;
-	++it;
-	while (it != list.end())
-	{
-		if (*it < prev)
-			return (false);
-		prev = *it;
-		++it;
-	}
-	return (true);
-}
-bool Server::DequeIsSorted(std::deque<size_t> &list)
-{
-	if (list.size() <= 1)
-		return (true);
-	std::deque<size_t>::iterator it = list.begin();
-	size_t prev = *it;
-	++it;
-	while (it != list.end())
-	{
-		if (*it < prev)
-			return (false);
-		prev = *it;
-		++it;
-	}
-	return (true);
+    // 9. Fermeture du socket client
+    close(server_fd);
+    close(epoll_fd);
+	std::cout << std::endl << std::endl << Deny << Red << " Server close" << Reset_Color << std::endl << std::endl;
 }
