@@ -34,7 +34,6 @@ void handle_signal(int signal)
     if (signal == SIGINT)
         running = false;
 }
-
 void Server::InitSocket(void)
 {
 	signal(SIGINT, handle_signal);
@@ -62,7 +61,7 @@ void Server::InitSocket(void)
     if (listen(server_fd, SOMAXCONN) < 0)
 		throw ListenException();
 
-    std::cout << "Serveur en écoute sur le port " << PORT << "...\n";
+    std::cout << "Serveur en écoute sur le port " << PORT << " ..." << std::endl;
 
     // 5. Création de l'instance epoll
     epoll_fd = epoll_create1(0);
@@ -106,7 +105,7 @@ void Server::ManageConnection(void)
                     std::cerr << "Accept error" << std::endl;
                     continue;
                 }
-                std::cout << "Nouvelle connexion acceptée !\n";
+                std::cout << Green << Arrow_down << " Nouvelle connexion acceptée " << Arrow_down << Reset_Color << std::endl;
 
                 // Met le client en mode non-bloquant
 				int flags = fcntl(new_socket, F_GETFL, 0);
@@ -120,13 +119,13 @@ void Server::ManageConnection(void)
             }
             // 8.2 Requête d'un client existant
             else {
-                char buffer[1024] = {0};
-                int valread = read(event_fd, buffer, 1024);
+                char buffer[BUFFER_SIZE] = {0};
+                int valread = read(event_fd, buffer, sizeof(buffer) - 1);
 
                 if (valread <= 0)
 				{
                     // Déconnexion du client
-                    std::cout << "Client déconnecté.\n";
+                    std::cout << Red << "Client déconnecté" << Reset_Color << std::endl << std::endl;
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     close(event_fd);
                 }
