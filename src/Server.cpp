@@ -25,7 +25,7 @@ Server::~Server(void)
 // Other function
 void Server::ParseConfigurationFile(std::string arg)
 {
-	std::cout << "Parse conf file : " << arg << std::endl;
+	std::cout << Green << "Configuration file : " << arg << " parsed" << Reset_Color << std::endl;
 }
 
 bool running = true;
@@ -37,7 +37,6 @@ void handle_signal(int signal)
 void Server::InitSocket(void)
 {
 	signal(SIGINT, handle_signal);
-	std::cout << "Init socket" << std::endl;
 
     // 1. Création du socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -61,7 +60,12 @@ void Server::InitSocket(void)
     if (listen(server_fd, SOMAXCONN) < 0)
 		throw ListenException();
 
-    std::cout << "Serveur en écoute sur le port " << PORT << " ..." << std::endl;
+    // std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl;
+    char host[NI_MAXHOST];
+    if (getnameinfo((struct sockaddr*)&address, sizeof(address), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
+        std::cerr << "Error getting address" << std::endl;
+    else
+        std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl;
 
     // 5. Création de l'instance epoll
     epoll_fd = epoll_create1(0);
@@ -77,8 +81,6 @@ void Server::InitSocket(void)
 
 void Server::ManageConnection(void)
 {
-	std::cout << "Manage connection" << std::endl;
-
 	// 7. Boucle principale
     struct epoll_event events[MAX_EVENTS];
     while (running)
@@ -105,7 +107,7 @@ void Server::ManageConnection(void)
                     std::cerr << "Accept error" << std::endl;
                     continue;
                 }
-                std::cout << Green << Arrow_down << " Nouvelle connexion acceptée " << Arrow_down << Reset_Color << std::endl;
+                std::cout << Green << " New connection from : " << server_fd << Reset_Color << std::endl;
 
                 // Met le client en mode non-bloquant
 				int flags = fcntl(new_socket, F_GETFL, 0);
@@ -125,12 +127,12 @@ void Server::ManageConnection(void)
                 if (valread <= 0)
 				{
                     // Déconnexion du client
-                    std::cout << Red << "Client déconnecté" << Reset_Color << std::endl << std::endl;
+                    std::cout << Red << "Client disconnect " << epoll_fd << Reset_Color << std::endl << std::endl;
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     close(event_fd);
                 }
 				else {
-                    std::cout << "Requête reçue : " << buffer << std::endl;
+                    std::cout << "Request : " << buffer << std::endl;
 
                     // Réponse HTTP basique
                     std::string response =

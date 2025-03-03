@@ -11,6 +11,7 @@
 #include <sys/epoll.h>  // epoll
 #include <fcntl.h>		// fcntl
 #include <csignal> 		// signal
+#include <netdb.h>
 
 #include "Utils.hpp"
 
