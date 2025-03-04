@@ -9,3 +9,6 @@ Todo :
 
 
 - Check si socket et connection faite sont ok avec le sujet
+
+Banes todo :
+- Fermer la connection seulement quand connection: close dans le header et renvoyer dans la reponse http connection: keep-alive ou connection: close

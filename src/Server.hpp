@@ -12,7 +12,9 @@
 #include <fcntl.h>		// fcntl
 #include <csignal> 		// signal
 #include <netdb.h>
+#include <arpa/inet.h>
 
+#include "HttpRequest.hpp"
 #include "Utils.hpp"
 
 

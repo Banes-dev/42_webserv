@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -Wextra -Werror -std=c++98
 
 # Normal
 NAME = webserv
-FUNC = src/main.cpp src/Server.cpp
+FUNC = src/main.cpp src/Server.cpp src/HttpRequest.cpp
 OBJS = $(FUNC:.cpp=.o)
 
 

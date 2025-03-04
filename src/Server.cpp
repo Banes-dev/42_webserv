@@ -47,7 +47,8 @@ void Server::InitSocket(void)
 
     // 2. Configuration de l'adresse
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
+    // address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
     address.sin_port = htons(PORT);
 
 	addrlen = sizeof(address);
@@ -60,7 +61,6 @@ void Server::InitSocket(void)
     if (listen(server_fd, SOMAXCONN) < 0)
 		throw ListenException();
 
-    // std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl;
     char host[NI_MAXHOST];
     if (getnameinfo((struct sockaddr*)&address, sizeof(address), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
         std::cerr << "Error getting address" << std::endl;
@@ -107,7 +107,7 @@ void Server::ManageConnection(void)
                     std::cerr << "Accept error" << std::endl;
                     continue;
                 }
-                std::cout << Green << " New connection from : " << server_fd << Reset_Color << std::endl;
+                std::cout << Green << "New connection from : " << new_socket << " - " << server_fd << Reset_Color << std::endl;
 
                 // Met le client en mode non-bloquant
 				int flags = fcntl(new_socket, F_GETFL, 0);
@@ -124,15 +124,22 @@ void Server::ManageConnection(void)
                 char buffer[BUFFER_SIZE] = {0};
                 int valread = read(event_fd, buffer, sizeof(buffer) - 1);
 
+                // std::cout << "valread : " << valread << std::endl;
                 if (valread <= 0)
 				{
                     // Déconnexion du client
-                    std::cout << Red << "Client disconnect " << epoll_fd << Reset_Color << std::endl << std::endl;
+                    std::cout << Red << "Client disconnect " << event_fd << " - " << server_fd << Reset_Color << std::endl << std::endl;
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     close(event_fd);
                 }
 				else {
-                    std::cout << "Request : " << buffer << std::endl;
+                    HttpRequest request;
+                    if (request.ParseRequest(buffer) == 1)
+                    {
+                        std::cerr << "Requête HTTP invalide" << std::endl;
+                        close(event_fd);
+                        continue;
+                    }
 
                     // Réponse HTTP basique
                     std::string response =
