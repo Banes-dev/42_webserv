@@ -4,11 +4,13 @@
 // Constructor & Destructor
 ConfParsing::ConfParsing(void) : _port(0), _host("vide")
 {
+    return;
 }
 
 ConfParsing::ConfParsing(const ConfParsing &copy) : _port(copy._port), _host(copy._host)
 {
     *this = copy;
+    return;
 }
 
 ConfParsing &ConfParsing::operator=(const ConfParsing &copy)
@@ -23,6 +25,7 @@ ConfParsing &ConfParsing::operator=(const ConfParsing &copy)
 
 ConfParsing::~ConfParsing(void)
 {
+    return;
 }
 
 
@@ -41,7 +44,7 @@ void ConfParsing::parsConf(void)
 {
     std::ifstream   ifs;
 
-    ifs.open(CONF_PATH);
+    ifs.open(CONF_PATH, std::ifstream::in);
     if (!ifs)
         throw BadParsingException();
     std::string     ligne;
@@ -53,7 +56,6 @@ void ConfParsing::parsConf(void)
             int     j = 0;
             for (std::string::iterator at = ligne.begin(); at != ligne.end() ; at++)
             {
-                j++;
                 if (*at >= '0' && *at <= '9')
                 {
                     std::string         ligne2 = ligne.substr(j);
@@ -63,27 +65,26 @@ void ConfParsing::parsConf(void)
                     _port = n;
                     break;
                 }
+                j++;
             }
-            throw BadParsingException();
         }
-    }
-    while (std::getline(ifs, ligne))
-    {
-        size_t  pos =  ligne.find("http:");
+        size_t  pos =  ligne.find("proxy_pass http://");
         if (pos != std::string::npos)
         {
             int     i = 0;
             for (std::string::iterator at = ligne.begin(); at != ligne.end() ; at++)
             {
-                i++;
                 if (*at >= '0' && *at <= '9')
                 {
-                    std::string     str = ligne.substr(i, (ligne.size() - 1));
+                    std::string     str = ligne.substr(i);
+                    size_t  end = str.find(';');
+                    if (end != std::string::npos)
+                        str = str.substr(0, end);
                     _host = str;
                     break;
                 }
+                i++;
             }
-            throw BadParsingException();
         }
     }
 }

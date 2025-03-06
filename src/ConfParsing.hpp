@@ -9,7 +9,7 @@
 
 #include "Utils.hpp"
 
-#define CONF_PATH "../config/default.conf"
+#define CONF_PATH "config/default.conf"
 
 class ConfParsing
 {
@@ -23,8 +23,8 @@ class ConfParsing
         ~ConfParsing();
 
         // Other function
-        unsigned int getPort(void) const;
-        std::string getHost(void) const;
+        unsigned int    getPort(void) const;
+        std::string     getHost(void) const;
         void parsConf(void);
 
 		// Exceptions
