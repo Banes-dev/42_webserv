@@ -17,7 +17,7 @@ ${NAME}: ${OBJS}
 %.o: %.cpp
 	${COMP} ${CFLAGS} -c $< -o $@
 
-clean:	
+clean:
 	rm -f ${OBJS}
 
 fclean:	clean
