@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "Utils.hpp"
+
 #define CONF_PATH "../config/default.conf"
 
 class ConfParsing
