@@ -1,12 +1,10 @@
 #include "Utils.hpp"
-#include "ConfParsing.hpp"
 
 #include "Server.hpp"
 
 int main(int argc, char**argv)
 {
     // check args
-    (void)argv;
     if (argc != 2)
     {
         std::cerr << Deny << Red << "Error wrong args\n" << Yellow << "Try : ./webserv [file].conf" << Reset_Color << std::endl;
@@ -23,20 +21,6 @@ int main(int argc, char**argv)
         std::cerr << e.what() << std::endl;
         return (1);
     }
-    try
-    {
-        ConfParsing     cp;
-        cp.parsConf();
-        std::string     aw = cp.getHost();
-        std::cout << "host " << aw << std::endl;
-        unsigned int    i = cp.getPort();
-        std::cout << "port " << i << std::endl;
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    
 
 	return (0);
 }
