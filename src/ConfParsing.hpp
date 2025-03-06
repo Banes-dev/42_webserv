@@ -6,6 +6,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <map>
+#include <vector>
+#include <ctype.h>
 
 #include "Utils.hpp"
 
@@ -15,7 +18,8 @@ class ConfParsing
 {
     private:
         unsigned int    _port;
-        std::string     _host; 
+        std::string     _host;
+        std::multimap< std::string, std::vector<std::string> > _conf;
     public:
         ConfParsing();
         ConfParsing(const ConfParsing &copy);
@@ -25,7 +29,8 @@ class ConfParsing
         // Other function
         unsigned int    getPort(void) const;
         std::string     getHost(void) const;
-        void parsConf(void);
+        void            parsConf(void);
+        void            parsConfDeux(void);
 
 		// Exceptions
 		class BadParsingException : public std::exception {

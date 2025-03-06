@@ -40,6 +40,55 @@ std::string ConfParsing::getHost(void) const
     return (this->_host);
 }
 
+void ConfParsing::parsConfDeux(void)
+{
+    std::ifstream   ifs;
+
+    ifs.open(CONF_PATH, std::ifstream::in);
+    if (!ifs)
+        throw BadParsingException();
+    std::string     ligne;
+    while (std::getline(ifs, ligne))
+    {
+        size_t     j = 0;
+        for (std::string::iterator at = ligne.begin(); at != ligne.end() ; at++)
+        {
+            if (!(isspace(*at)))
+            {
+                std::string  ligne2;
+                size_t       s = ligne.find(" ", j);
+                if (s != std::string::npos)
+                    ligne2 = ligne.substr(j, s - j);
+                while ((s < ligne.size()) && isspace(ligne[s]))
+                    s++;
+                if (s == ligne.size())
+                    break;
+                std::string   ligne3 = ligne.substr(s);
+                size_t       f = ligne3.find(";");
+                if (f != std::string::npos)
+                    ligne3 = ligne3.substr(0, f);
+                std::cout << ligne2 << "           " << ligne3 << std::endl;
+
+
+                size_t          end = ligne3.find('{');
+                if (end != std::string::npos)
+                {
+                    ligne2 = ligne2.substr(0, end);
+                    for (; at != ligne.end() ; at++)
+                    {
+                        size_t          c = ligne.find('}');
+                        if (c != std::string::npos)
+                            break;
+                    }
+                }
+//                _conf.insert({ligne2, std::vector<std::string>{ligne3}});
+                break;
+            }
+            j++;
+        }
+    }
+}
+
 void ConfParsing::parsConf(void)
 {
     std::ifstream   ifs;

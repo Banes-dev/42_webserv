@@ -13,7 +13,7 @@ int main(int argc, char**argv)
         return (1);
     }
 
-    try {
+/*    try {
         // Check si le .conf est bon (.conf a la fin), si on peut l'ouvrir et le lire
         Server server;
         server.ParseConfigurationFile(argv[1]); // Lire le fichier et mettre les infos dans les private du server
@@ -22,11 +22,11 @@ int main(int argc, char**argv)
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return (1);
-    }
+    }*/
     try
     {
         ConfParsing     cp;
-        cp.parsConf();
+        cp.parsConfDeux();
 /*        std::string     aw = cp.getHost();
         std::cout << "host " << aw << std::endl;
         unsigned int    i = cp.getPort();
