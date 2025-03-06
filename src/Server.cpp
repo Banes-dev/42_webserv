@@ -134,12 +134,19 @@ void Server::ManageConnection(void)
                 }
 				else {
                     HttpRequest request;
-                    if (request.ParseRequest(buffer) == 1)
-                    {
-                        std::cerr << "Requête HTTP invalide" << std::endl;
+                    try {
+                        request.ParseRequest(buffer);
+                    } catch (std::exception &e) {
+                        std::cerr << e.what() << std::endl;
                         close(event_fd);
                         continue;
                     }
+                    // if (request.ParseRequest(buffer) == 1)
+                    // {
+                    //     std::cerr << "Requête HTTP invalide" << std::endl;
+                    //     close(event_fd);
+                    //     continue;
+                    // }
 
                     // Réponse HTTP basique
                     std::string response =
@@ -159,4 +166,20 @@ void Server::ManageConnection(void)
     close(server_fd);
     close(epoll_fd);
 	std::cout << std::endl << std::endl << Deny << Red << " Server close" << Reset_Color << std::endl << std::endl;
+}
+
+std::string Server::GetTime(void)
+{
+    time_t actuel = time(0);
+    tm *ltm = localtime(&actuel);
+    std::ostringstream timeStr;
+    timeStr << "[" 
+               << (1900 + ltm->tm_year) << "-"  // Année
+               << std::setw(2) << std::setfill('0') << (1 + ltm->tm_mon) << "-"  // Mois avec 0 devant
+               << std::setw(2) << std::setfill('0') << ltm->tm_mday << " "       // Jour avec 0 devant
+               << ltm->tm_hour << ":"          // Heure
+               << ltm->tm_min << ":"           // Minute
+               << ltm->tm_sec << "]";          // Seconde
+
+    return (timeStr.str());
 }

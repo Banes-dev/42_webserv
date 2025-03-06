@@ -23,13 +23,31 @@ class HttpRequest
 		~HttpRequest();
 
 		// Other function
-        int ParseRequest(std::string buffer) const;
+        void ParseRequest(std::string buffer);
 
 		// Exceptions
-		class SocketException : public std::exception {
+		class HttpRequestLineException : public std::exception {
 			public:
 				virtual const char *what() const throw() {
-					return ("\033[0;31mSocket error\033[0m");
+					return ("\033[0;31mHttp request line error\033[0m");
+				}
+		};
+		class MethodException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mMethod request error\033[0m");
+				}
+		};
+		class HttpVersionException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mHttp version error\033[0m");
+				}
+		};
+		class HeadersException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mHeaders error\033[0m");
 				}
 		};
 };

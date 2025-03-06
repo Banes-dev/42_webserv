@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>  	// base
+#include <iomanip> 		// std::setw, std::setfill
 #include <fstream>		// file gestion
 #include <sstream>		// text gestion
 #include <map> 			// map
@@ -13,6 +14,7 @@
 #include <csignal> 		// signal
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <ctime> 		// time
 
 #include "HttpRequest.hpp"
 #include "Utils.hpp"
@@ -39,6 +41,7 @@ class Server
         void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server
         void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
         void ManageConnection(void);          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+		static std::string GetTime(void);
 
 		// Exceptions
 		class SocketException : public std::exception {
