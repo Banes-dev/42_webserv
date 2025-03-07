@@ -107,7 +107,7 @@ void Server::ManageConnection(void)
                     std::cerr << "Accept error" << std::endl;
                     continue;
                 }
-                std::cout << Green << "New connection from : " << new_socket << " - " << server_fd << Reset_Color << std::endl;
+                std::cout << Green << "New connection from : " << new_socket << Reset_Color << std::endl;
 
                 // Met le client en mode non-bloquant
 				int flags = fcntl(new_socket, F_GETFL, 0);
@@ -124,15 +124,16 @@ void Server::ManageConnection(void)
                 char buffer[BUFFER_SIZE] = {0};
                 int valread = read(event_fd, buffer, sizeof(buffer) - 1);
 
-                // std::cout << "valread : " << valread << std::endl;
+                std::cout << "valread : " << valread << std::endl;
                 if (valread <= 0)
 				{
                     // Déconnexion du client
-                    std::cout << Red << "Client disconnect " << event_fd << " - " << server_fd << Reset_Color << std::endl << std::endl;
+                    std::cout << Red << "Client disconnect " << event_fd << Reset_Color << std::endl << std::endl;
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     close(event_fd);
+                    continue;
                 }
-				else {
+				// else {
                     HttpRequest request;
                     try {
                         request.ParseRequest(buffer);
@@ -141,23 +142,33 @@ void Server::ManageConnection(void)
                         close(event_fd);
                         continue;
                     }
-                    // if (request.ParseRequest(buffer) == 1)
-                    // {
-                    //     std::cerr << "Requête HTTP invalide" << std::endl;
-                    //     close(event_fd);
-                    //     continue;
-                    // }
+                    // std::cout << "Méthode: " << request.GetMethod() << "\n";
+                    // std::cout << "Chemin: " << request.GetPath() << "\n";
+                    // std::cout << "Version: " << request.GetVersion() << "\n";
+                    const std::map<std::string, std::string> &headers = request.GetHeaders();
+                    bool keep_alive = false;
+                    std::map<std::string, std::string>::const_iterator it = headers.find("Connection");  
+                    if (it != headers.end() && it->second == "keep-alive")
+                        keep_alive = true;
+                    // std::cout << "Header connection: " << keep_alive << "\n";
 
                     // Réponse HTTP basique
                     std::string response =
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
                         "Content-Length: 13\r\n"
+                        "Connection: " + std::string(keep_alive ? "keep-alive" : "close") + "\r\n"
                         "\r\n"
                         "Hello, Client!";
 
                     send(event_fd, response.c_str(), response.size(), 0);
-                }
+                    if (keep_alive == false)
+                    {
+                        std::cout << Red << "Client disconnect " << event_fd << Reset_Color << std::endl << std::endl;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        close(event_fd);
+                    }
+                // }
             }
         }
     }
