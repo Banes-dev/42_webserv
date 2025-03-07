@@ -26,7 +26,8 @@ int main(int argc, char**argv)
     try
     {
         ConfParsing     cp;
-        cp.parsConfDeux();
+        cp.parsConfUn();
+        std::cout << cp;
 /*        std::string     aw = cp.getHost();
         std::cout << "host " << aw << std::endl;
         unsigned int    i = cp.getPort();

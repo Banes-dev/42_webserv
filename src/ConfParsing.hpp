@@ -1,14 +1,15 @@
 #pragma once
 
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
-#include <algorithm>
-#include <map>
-#include <vector>
-#include <ctype.h>
+# include <iostream>
+# include <string>
+# include <fstream>
+# include <sstream>
+# include <stdexcept>
+# include <algorithm>
+# include <map>
+# include <vector>
+# include <ctype.h>
+# include <list>
 
 #include "Utils.hpp"
 
@@ -17,9 +18,11 @@
 class ConfParsing
 {
     private:
-        unsigned int    _port;
-        std::string     _host;
-        std::multimap< std::string, std::vector<std::string> > _conf;
+        std::list< std::multimap< std::string, std::vector<std::string> > >     _def; 
+//        std::multimap< std::string, std::vector<std::string> >                  _conf;
+//        unsigned int    _port;
+//        std::string     _host;
+
     public:
         ConfParsing();
         ConfParsing(const ConfParsing &copy);
@@ -27,10 +30,14 @@ class ConfParsing
         ~ConfParsing();
 
         // Other function
-        unsigned int    getPort(void) const;
-        std::string     getHost(void) const;
-        void            parsConf(void);
-        void            parsConfDeux(void);
+        std::list< std::multimap< std::string, std::vector<std::string> > >      getConf(void) const;
+
+//        unsigned int    getPort(void) const;
+//        std::string     getHost(void) const;
+//        void            parsConf(void);
+
+        void                   parsConfUn(void);
+        std::string            parsConfDeux(std::string ligne);
 
 		// Exceptions
 		class BadParsingException : public std::exception {
@@ -40,3 +47,5 @@ class ConfParsing
 				}
 		};
 };
+
+std::ostream &      operator<<(std::ostream &, ConfParsing const & src);
