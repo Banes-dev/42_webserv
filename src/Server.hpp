@@ -31,11 +31,15 @@ class Server
 		int epoll_fd;
 		struct sockaddr_in address;
 		socklen_t addrlen;
+
+		std::map<int, time_t> _client_last_active;
 	public:
 		Server();
 		Server(const Server &copy);
 		Server &operator=(const Server &copy);
 		~Server();
+
+		// std::map<int, time_t> _client_last_active;
 
 		// Other function
         void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server

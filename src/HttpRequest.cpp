@@ -46,7 +46,7 @@ void HttpRequest::ParseRequest(std::string buffer)
     std::getline(ss, path, ' ');
     std::getline(ss, version);
     trim(version);
-    // std::cout << method << path << version << std::endl;
+    // std::cout << method << " " << path << " " << version << std::endl;
     if (method.empty() || path.empty() || version.empty())
         throw HttpRequestLineException();
     if (method != "GET" && method != "POST" && method != "DELETE")
