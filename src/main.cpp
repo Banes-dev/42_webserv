@@ -37,7 +37,44 @@ int main(int argc, char**argv)
     {
         std::cerr << e.what() << '\n';
     }
-    
+
+    try
+    {
+        ConfParsing     cpp;
+        cpp.parsConfUn();
+        if (cpp.getConf().empty()) 
+        {
+            throw std::runtime_error("Erreur: La liste de configurations est vide.");
+        }
+        const std::multimap< std::string, std::vector<std::string> > configMap = cpp.getConf().front();
+
+        // Vérifier si la clé "location" existe
+        std::pair< std::multimap<std::string, std::vector<std::string> >::const_iterator, 
+                std::multimap< std::string, std::vector<std::string> >::const_iterator> range = configMap.equal_range("location");
+
+        if (range.first == range.second) 
+        {
+            throw std::runtime_error("Erreur: Aucune clé 'location' trouvée dans la configuration.");
+        }
+
+        // Afficher toutes les valeurs associées à "location"
+        std::cout << "Locations trouvées: " << std::endl;
+        for (std::multimap< std::string, std::vector<std::string> >::const_iterator it = range.first; it != range.second; ++it)
+        {
+            std::cout << " - ";
+            for (std::vector<std::string>::const_iterator vit = it->second.begin(); vit != it->second.end(); ++vit)
+            {
+                std::cout << *vit << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+}
+
 
 	return (0);
 }

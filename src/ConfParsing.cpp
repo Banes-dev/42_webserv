@@ -119,14 +119,14 @@ void ConfParsing::parsConfUn(void)
     ifs.close();
 }
 
-std::list< std::multimap< std::string, std::vector<std::string> > >      ConfParsing::getConf(void) const
+const std::list< std::multimap< std::string, std::vector<std::string> > > &   ConfParsing::getConf(void) const
 {
     return (_def);
 }
 
 std::ostream &      operator<<(std::ostream & o, ConfParsing const & src)
 {
-    const std::list< std::multimap< std::string, std::vector<std::string> > > &def = src.getConf(); //stock la reference
+    const std::list< std::multimap< std::string, std::vector<std::string> > > &     def = src.getConf(); //stock la reference
 
     std::list< std::multimap< std::string, std::vector<std::string> > >::const_iterator it = def.begin();
     while(it != def.end())

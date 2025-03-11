@@ -18,7 +18,7 @@
 class ConfParsing
 {
     private:
-        std::list< std::multimap< std::string, std::vector<std::string> > >     _def; 
+        std::list< std::multimap< std::string, std::vector<std::string> > >       _def; 
 //        std::multimap< std::string, std::vector<std::string> >                  _conf;
 //        unsigned int    _port;
 //        std::string     _host;
@@ -30,7 +30,7 @@ class ConfParsing
         ~ConfParsing();
 
         // Other function
-        std::list< std::multimap< std::string, std::vector<std::string> > >      getConf(void) const;
+        const std::list< std::multimap< std::string, std::vector<std::string> > > &    getConf(void) const;
 
 //        unsigned int    getPort(void) const;
 //        std::string     getHost(void) const;
