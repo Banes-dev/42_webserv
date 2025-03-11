@@ -17,6 +17,7 @@
 #include <ctime> 		// time
 
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include "Utils.hpp"
 
 

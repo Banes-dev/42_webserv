@@ -165,15 +165,33 @@ void Server::ManageConnection(void)
                         keep_alive = true;
 
                     // Réponse HTTP basique
-                    std::string response =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/plain\r\n"
-                        "Content-Length: 13\r\n"
-                        "Connection: " + std::string(keep_alive ? "keep-alive" : "close") + "\r\n"
-                        "\r\n"
-                        "Hello, Client!";
+                    // std::string response =
+                    //     "HTTP/1.1 200 OK\r\n"
+                    //     "Content-Type: text/plain\r\n"
+                    //     "Content-Length: 13\r\n"
+                    //     "Connection: " + std::string(keep_alive ? "keep-alive" : "close") + "\r\n"
+                    //     "\r\n"
+                    //     "Hello, Client!";
 
-                    send(event_fd, response.c_str(), response.size(), 0);
+                    HttpResponse response;
+                    try {
+                        std::string path = request.GetPath();
+                        if (path == "/")
+                            path = "/index.html";
+                        response.ServeFile(path);
+                        // response.SetStatus(200);
+                        // response.SetHeader("Content-Type", "text/html");
+                        // response.SetBody("<html><body><h1>Hello, WebServ!</h1></body></html>");
+                        // response.SetKeepAlive(true);
+                    } catch (std::exception &e) {
+                        std::cerr << e.what() << std::endl;
+                        close(event_fd);
+                        continue;
+                    }
+                    std::string responseStr = response.ToString();
+
+                    // send(event_fd, response.c_str(), response.size(), 0);
+                    send(event_fd, responseStr.c_str(), responseStr.size(), 0);
                     if (keep_alive == false)
                     {
                         std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
