@@ -19,6 +19,10 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Utils.hpp"
+#include "CgiExecution.hpp"
+#include <stdio.h>
+#include <stdlib.h>
+
 
 
 #define PORT 8080

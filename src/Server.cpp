@@ -1,6 +1,5 @@
 #include "Server.hpp"
 
-
 // Constructor & Destructor
 Server::Server(void)
 {
@@ -164,6 +163,7 @@ void Server::ManageConnection(void)
                     if (it != headers.end() && it->second == "keep-alive")
                         keep_alive = true;
 
+
                     // Réponse HTTP basique
                     // std::string response =
                     //     "HTTP/1.1 200 OK\r\n"
@@ -198,6 +198,16 @@ void Server::ManageConnection(void)
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                         close(event_fd);
                     }
+
+                    std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << std::endl;
+/*                    char    *data = getenv("QUERY-STRING");
+                    printf(" data %s\n", data);
+                    for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
+                    {
+                        std::cout << itt->first << " - " << itt->second << std::endl;
+                    }*/
+                    CgiExecution    abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetHeaders());
+                    abc.methodeType();
                 }
             }
         }

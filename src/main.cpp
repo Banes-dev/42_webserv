@@ -24,6 +24,7 @@ int main(int argc, char**argv)
         return (1);
     }
 
+
 /*    try
     {
         ConfParsing     cp(argv[1]);
@@ -43,7 +44,7 @@ int main(int argc, char**argv)
     {
         ConfParsing     cpp(argv[1]);
         cpp.parsConfUn();
-        std::list< std::vector<std::string> >      result;
+/*        std::list< std::vector<std::string> >      result;
         result = cpp.getLocation(cpp);
         for (std::list< std::vector<std::string> >::iterator it = result.begin(); it != result.end(); it++)
         {
@@ -53,7 +54,7 @@ int main(int argc, char**argv)
                 std::cout << std::endl;
             }
             std::cout << std::endl;
-        }
+        }*/
     }
     catch(const std::exception& e)
     {
