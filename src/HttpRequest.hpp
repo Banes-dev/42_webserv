@@ -25,6 +25,12 @@ class HttpRequest
 		// Other function
         void ParseRequest(std::string buffer);
 
+		const std::string GetMethod(void);
+		const std::string GetPath(void);
+		const std::string GetVersion(void);
+		const std::map<std::string, std::string> &GetHeaders(void);
+		const std::string GetBody(void);
+
 		// Exceptions
 		class HttpRequestLineException : public std::exception {
 			public:

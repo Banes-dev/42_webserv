@@ -37,26 +37,16 @@ void trim(std::string &str)
 }
 void HttpRequest::ParseRequest(std::string buffer)
 {
-    // std::cout << "Test : " << std::endl << buffer << std::endl;
-
     std::replace(buffer.begin(), buffer.end(), '\r', ' ');
     std::stringstream ss(buffer);
     std::string method, path, version;
 
     // 1. Request Line
-    // if (!(ss >> method >> path >> version))
-    //     throw HttpRequestLineException();
-    // if (method != "GET" && method != "POST" && method != "DELETE")
-    //     throw MethodException();
-    // if (version != "HTTP/1.1")
-    //     throw HttpVersionException();
-    std::getline(ss, method, ' ');  // Lire la méthode (avant l'espace)
-    std::getline(ss, path, ' ');    // Lire le chemin (avant l'espace)
-    std::getline(ss, version); // Lire la version (jusqu'à la fin de la ligne)
-
+    std::getline(ss, method, ' ');
+    std::getline(ss, path, ' ');
+    std::getline(ss, version);
     trim(version);
-
-    // Vérification de la ligne de requête
+    // std::cout << method << " " << path << " " << version << std::endl;
     if (method.empty() || path.empty() || version.empty())
         throw HttpRequestLineException();
     if (method != "GET" && method != "POST" && method != "DELETE")
@@ -69,22 +59,54 @@ void HttpRequest::ParseRequest(std::string buffer)
 
     // 2. Parse headers
     std::string header_line;
-    while (std::getline(ss, header_line) && !header_line.empty())
+    while (std::getline(ss, header_line))
     {
-        std::cout << "Header line : " << header_line << std::endl;
+        trim(header_line);
+        if (header_line.empty())
+            break;
         size_t slipt_pos = header_line.find(": ");
-        // std::cout << header_line << " " << slipt_pos << " " << std::string::npos << std::endl;
         if (slipt_pos != std::string::npos)
         {
             std::string key = header_line.substr(0, slipt_pos);
-            std::string value = header_line.substr(slipt_pos + 2);  // Ignore le ": "
+            std::string value = header_line.substr(slipt_pos + 2);
             this->_headers[key] = value;
-
-            std::cout << "Header: " << key << ": " << value << std::endl;
+            // std::cout << "Header: " << key << ": " << value << std::endl;
         }
         else
             throw HeadersException();
     }
 
+    // 3. Get body
+    std::string body_content;
+    char c;
+    while (ss.get(c))
+        body_content.push_back(c);
+    if (!body_content.empty())
+    {
+        this->_body = body_content;
+        // std::cout << "Body: " << this->_body << std::endl;
+    }
+
     std::cout << Purple << Server::GetTime() << " " << this->_method << " " << this->_path << " " << this->_version << Reset_Color << std::endl;
+}
+
+const std::string HttpRequest::GetMethod(void)
+{
+    return (this->_method);
+}
+const std::string HttpRequest::GetPath(void)
+{
+    return (this->_path);
+}
+const std::string HttpRequest::GetVersion(void)
+{
+    return (this->_version);
+}
+const std::map<std::string, std::string> &HttpRequest::GetHeaders(void)
+{
+    return (this->_headers);
+}
+const std::string HttpRequest::GetBody(void)
+{
+    return (this->_body);
 }

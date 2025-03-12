@@ -61,12 +61,6 @@ void Server::InitSocket(void)
     if (listen(server_fd, SOMAXCONN) < 0)
 		throw ListenException();
 
-    char host[NI_MAXHOST];
-    if (getnameinfo((struct sockaddr*)&address, sizeof(address), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
-        std::cerr << "Error getting address" << std::endl;
-    else
-        std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl;
-
     // 5. Création de l'instance epoll
     epoll_fd = epoll_create1(0);
     if (epoll_fd < 0)
@@ -74,9 +68,15 @@ void Server::InitSocket(void)
 
     // 6. Ajout du socket serveur à epoll
     struct epoll_event ev;
-    ev.events = EPOLLIN;  // Surveille les nouvelles connexions
+    ev.events = EPOLLIN;
     ev.data.fd = server_fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev);
+
+    char host[NI_MAXHOST];
+    if (getnameinfo((struct sockaddr*)&address, sizeof(address), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
+        std::cerr << "Error getting address" << std::endl;
+    else
+        std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl << std::endl;
 }
 
 void Server::ManageConnection(void)
@@ -85,13 +85,26 @@ void Server::ManageConnection(void)
     struct epoll_event events[MAX_EVENTS];
     while (running)
 	{
-        int event_count = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        int event_count = epoll_wait(epoll_fd, events, MAX_EVENTS, 60000);
         if (event_count < 0)
 		{
 			if (errno == EINTR)
 				continue;
 			throw EpollWaitException();
 		}
+        time_t now = time(NULL);
+        for (std::map<int, time_t>::iterator it = _client_last_active.begin(); it != _client_last_active.end();)
+        {
+            if (now - it->second > 59)
+            {
+                std::cout << Red << Server::GetTime() << " " << "Timeout, client disconnect " << it->first << Reset_Color << std::endl;
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, it->first, NULL);
+                close(it->first);
+                _client_last_active.erase(it++);
+            }
+            else
+                ++it;
+        }
 
         // 8. Parcours des événements détectés
         for (int i = 0; i < event_count; i++)
@@ -107,7 +120,8 @@ void Server::ManageConnection(void)
                     std::cerr << "Accept error" << std::endl;
                     continue;
                 }
-                std::cout << Green << "New connection from : " << new_socket << " - " << server_fd << Reset_Color << std::endl;
+                _client_last_active[new_socket] = time(NULL);
+                std::cout << Green << Server::GetTime() << " " << "New connection from : " << new_socket << Reset_Color << std::endl;
 
                 // Met le client en mode non-bloquant
 				int flags = fcntl(new_socket, F_GETFL, 0);
@@ -115,7 +129,8 @@ void Server::ManageConnection(void)
 
                 // Ajoute le client à epoll
                 struct epoll_event client_ev;
-                client_ev.events = EPOLLIN | EPOLLET; // Lecture en mode Edge Triggered
+                // client_ev.events = EPOLLIN | EPOLLET;
+                client_ev.events = EPOLLIN | EPOLLONESHOT;
                 client_ev.data.fd = new_socket;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, &client_ev);
             }
@@ -124,15 +139,15 @@ void Server::ManageConnection(void)
                 char buffer[BUFFER_SIZE] = {0};
                 int valread = read(event_fd, buffer, sizeof(buffer) - 1);
 
-                // std::cout << "valread : " << valread << std::endl;
                 if (valread <= 0)
 				{
-                    // Déconnexion du client
-                    std::cout << Red << "Client disconnect " << event_fd << " - " << server_fd << Reset_Color << std::endl << std::endl;
+                    std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                     close(event_fd);
                 }
 				else {
+                    // _client_last_active[event_fd] = time(NULL);
+
                     HttpRequest request;
                     try {
                         request.ParseRequest(buffer);
@@ -141,22 +156,48 @@ void Server::ManageConnection(void)
                         close(event_fd);
                         continue;
                     }
-                    // if (request.ParseRequest(buffer) == 1)
-                    // {
-                    //     std::cerr << "Requête HTTP invalide" << std::endl;
-                    //     close(event_fd);
-                    //     continue;
-                    // }
+
+                    // Check si keep-alive est dans les headers
+                    const std::map<std::string, std::string> &headers = request.GetHeaders();
+                    bool keep_alive = false;
+                    std::map<std::string, std::string>::const_iterator it = headers.find("Connection");  
+                    if (it != headers.end() && it->second == "keep-alive")
+                        keep_alive = true;
 
                     // Réponse HTTP basique
-                    std::string response =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/plain\r\n"
-                        "Content-Length: 13\r\n"
-                        "\r\n"
-                        "Hello, Client!";
+                    // std::string response =
+                    //     "HTTP/1.1 200 OK\r\n"
+                    //     "Content-Type: text/plain\r\n"
+                    //     "Content-Length: 13\r\n"
+                    //     "Connection: " + std::string(keep_alive ? "keep-alive" : "close") + "\r\n"
+                    //     "\r\n"
+                    //     "Hello, Client!";
 
-                    send(event_fd, response.c_str(), response.size(), 0);
+                    HttpResponse response;
+                    try {
+                        std::string path = request.GetPath();
+                        if (path == "/")
+                            path = "/index.html";
+                        response.ServeFile(path);
+                        // response.SetStatus(200);
+                        // response.SetHeader("Content-Type", "text/html");
+                        // response.SetBody("<html><body><h1>Hello, WebServ!</h1></body></html>");
+                        // response.SetKeepAlive(true);
+                    } catch (std::exception &e) {
+                        std::cerr << e.what() << std::endl;
+                        close(event_fd);
+                        continue;
+                    }
+                    std::string responseStr = response.ToString();
+
+                    // send(event_fd, response.c_str(), response.size(), 0);
+                    send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                    if (keep_alive == false)
+                    {
+                        std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        close(event_fd);
+                    }
                 }
             }
         }
