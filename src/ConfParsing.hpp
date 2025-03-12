@@ -10,6 +10,7 @@
 # include <vector>
 # include <ctype.h>
 # include <list>
+# include <stack>
 
 #include "Utils.hpp"
 
@@ -18,19 +19,21 @@
 class ConfParsing
 {
     private:
-        std::list< std::multimap< std::string, std::vector<std::string> > >       _def; 
+        std::list< std::multimap< std::string, std::vector<std::string> > >       _def;
+        std::string     _path;
 //        std::multimap< std::string, std::vector<std::string> >                  _conf;
 //        unsigned int    _port;
 //        std::string     _host;
 
     public:
-        ConfParsing();
+        ConfParsing(std::string argv);
         ConfParsing(const ConfParsing &copy);
 		ConfParsing &operator=(const ConfParsing &copy);
         ~ConfParsing();
 
         // Other function
         const std::list< std::multimap< std::string, std::vector<std::string> > > &    getConf(void) const;
+        std::list< std::vector<std::string> >              getLocation(ConfParsing const & conf) const;
 
 //        unsigned int    getPort(void) const;
 //        std::string     getHost(void) const;

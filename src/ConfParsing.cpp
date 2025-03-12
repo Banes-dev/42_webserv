@@ -2,7 +2,7 @@
 
 
 // Constructor & Destructor
-ConfParsing::ConfParsing(void)
+ConfParsing::ConfParsing(std::string argv) : _path(argv)
 {
     return;
 }
@@ -62,7 +62,7 @@ void ConfParsing::parsConfUn(void)
 {
     std::ifstream   ifs;
 
-    ifs.open(CONF_PATH, std::ifstream::in);
+    ifs.open(_path.c_str(), std::ifstream::in);
     if (!ifs)
         throw BadParsingException();
     std::string     ligne;
@@ -122,6 +122,43 @@ void ConfParsing::parsConfUn(void)
 const std::list< std::multimap< std::string, std::vector<std::string> > > &   ConfParsing::getConf(void) const
 {
     return (_def);
+}
+
+std::list< std::vector<std::string> >              ConfParsing::getLocation(ConfParsing const & conf) const
+{
+    std::list< std::vector<std::string> >      result;
+
+    if (conf.getConf().empty()) 
+    {
+        throw std::runtime_error("Erreur: La liste de configurations est vide.");
+    }
+    const std::multimap< std::string, std::vector<std::string> > configMap = conf.getConf().front();
+
+    // Vérifier si la clé "location" existe
+    std::pair< std::multimap<std::string, std::vector<std::string> >::const_iterator, 
+            std::multimap< std::string, std::vector<std::string> >::const_iterator> range = configMap.equal_range("location");
+    if (range.first == range.second) 
+    {
+        throw std::runtime_error("Erreur: Aucune clé 'location' trouvée dans la configuration.");
+    }
+
+    // Afficher toutes les valeurs associées à "location"
+//    std::cout << "Locations trouvées: " << std::endl;
+    for (std::multimap< std::string, std::vector<std::string> >::const_iterator it = range.first; it != range.second; ++it)
+    {
+        std::vector<std::string>    temp;
+//        std::cout << " - ";
+        for (std::vector<std::string>::const_iterator vit = it->second.begin(); vit != it->second.end(); ++vit)
+        {
+            temp.push_back(*vit);
+//            std::cout << *vit << " ";
+        }
+        result.push_back(temp);
+        temp.clear();
+//        std::cout << std::endl;
+    }
+//    std::cout << std::endl;
+    return (result);
 }
 
 std::ostream &      operator<<(std::ostream & o, ConfParsing const & src)

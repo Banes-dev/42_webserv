@@ -13,7 +13,7 @@ int main(int argc, char**argv)
         return (1);
     }
 
-/*    try {
+    try {
         // Check si le .conf est bon (.conf a la fin), si on peut l'ouvrir et le lire
         Server server;
         server.ParseConfigurationFile(argv[1]); // Lire le fichier et mettre les infos dans les private du server
@@ -22,53 +22,38 @@ int main(int argc, char**argv)
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return (1);
-    }*/
-    try
+    }
+
+/*    try
     {
-        ConfParsing     cp;
+        ConfParsing     cp(argv[1]);
         cp.parsConfUn();
         std::cout << cp;
-/*        std::string     aw = cp.getHost();
-        std::cout << "host " << aw << std::endl;
-        unsigned int    i = cp.getPort();
-        std::cout << "port " << i << std::endl;*/
+//        std::string     aw = cp.getHost();
+//        std::cout << "host " << aw << std::endl;
+//        unsigned int    i = cp.getPort();
+//        std::cout << "port " << i << std::endl;
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
-    }
+    }*/
 
     try
     {
-        ConfParsing     cpp;
+        ConfParsing     cpp(argv[1]);
         cpp.parsConfUn();
-        if (cpp.getConf().empty()) 
+        std::list< std::vector<std::string> >      result;
+        result = cpp.getLocation(cpp);
+        for (std::list< std::vector<std::string> >::iterator it = result.begin(); it != result.end(); it++)
         {
-            throw std::runtime_error("Erreur: La liste de configurations est vide.");
-        }
-        const std::multimap< std::string, std::vector<std::string> > configMap = cpp.getConf().front();
-
-        // Vérifier si la clé "location" existe
-        std::pair< std::multimap<std::string, std::vector<std::string> >::const_iterator, 
-                std::multimap< std::string, std::vector<std::string> >::const_iterator> range = configMap.equal_range("location");
-
-        if (range.first == range.second) 
-        {
-            throw std::runtime_error("Erreur: Aucune clé 'location' trouvée dans la configuration.");
-        }
-
-        // Afficher toutes les valeurs associées à "location"
-        std::cout << "Locations trouvées: " << std::endl;
-        for (std::multimap< std::string, std::vector<std::string> >::const_iterator it = range.first; it != range.second; ++it)
-        {
-            std::cout << " - ";
-            for (std::vector<std::string>::const_iterator vit = it->second.begin(); vit != it->second.end(); ++vit)
+            for (std::vector<std::string>::const_iterator vit = it->begin(); vit != it->end(); ++vit)
             {
                 std::cout << *vit << " ";
+                std::cout << std::endl;
             }
             std::cout << std::endl;
         }
-        std::cout << std::endl;
     }
     catch(const std::exception& e)
     {
