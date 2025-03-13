@@ -40,8 +40,6 @@ class Server
 		Server &operator=(const Server &copy);
 		~Server();
 
-		// std::map<int, time_t> _client_last_active;
-
 		// Other function
         void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server
         void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
@@ -53,6 +51,12 @@ class Server
 			public:
 				virtual const char *what() const throw() {
 					return ("\033[0;31mSocket error\033[0m");
+				}
+		};
+		class SetsockoptException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mSetsockopt error\033[0m");
 				}
 		};
 		class BindException : public std::exception {

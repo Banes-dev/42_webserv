@@ -90,18 +90,31 @@ void HttpResponse::ServeFile(const std::string &filePath)
 
     if (!FileExists(fullPath))
     {
+        fullPath = "net/errors/404.html";
+        std::ifstream file(fullPath.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
         SetStatus(404);
-        fullPath = "net/static/404.html";
+        SetBody(buffer.str());
+        SetHeader("Content-Type", GetMimeType(fullPath));
+        return;
     }
 
     std::ifstream file(fullPath.c_str(), std::ios::binary);
     if (!file.is_open())
     {
+        fullPath = "net/errors/500.html";
+        file.open(fullPath.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
         SetStatus(500);
-        fullPath = "net/static/500.html";
-        // SetBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
-        // SetHeader("Content-Type", "text/html");
-        // return;
+        SetBody(buffer.str());
+        SetHeader("Content-Type", GetMimeType(fullPath));
+        return;
     }
 
     std::ostringstream buffer;

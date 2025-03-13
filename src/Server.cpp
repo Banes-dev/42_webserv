@@ -47,13 +47,15 @@ void Server::InitSocket(void)
 
     // 2. Configuration de l'adresse
     address.sin_family = AF_INET;
-    // address.sin_addr.s_addr = INADDR_ANY;
     address.sin_addr.s_addr = inet_addr("127.0.0.1");
     address.sin_port = htons(PORT);
 
 	addrlen = sizeof(address);
 
     // 3. Liaison du socket au port
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+        throw SetsockoptException();
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
 		throw BindException();
 
@@ -129,8 +131,7 @@ void Server::ManageConnection(void)
 
                 // Ajoute le client à epoll
                 struct epoll_event client_ev;
-                // client_ev.events = EPOLLIN | EPOLLET;
-                client_ev.events = EPOLLIN | EPOLLONESHOT;
+                client_ev.events = EPOLLIN; // EPOLLET| EPOLLONESHOT
                 client_ev.data.fd = new_socket;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, &client_ev);
             }
@@ -146,8 +147,7 @@ void Server::ManageConnection(void)
                     close(event_fd);
                 }
 				else {
-                    // _client_last_active[event_fd] = time(NULL);
-
+                    // Parsing Http request
                     HttpRequest request;
                     try {
                         request.ParseRequest(buffer);
@@ -164,33 +164,24 @@ void Server::ManageConnection(void)
                     if (it != headers.end() && it->second == "keep-alive")
                         keep_alive = true;
 
-                    // Réponse HTTP basique
-                    // std::string response =
-                    //     "HTTP/1.1 200 OK\r\n"
-                    //     "Content-Type: text/plain\r\n"
-                    //     "Content-Length: 13\r\n"
-                    //     "Connection: " + std::string(keep_alive ? "keep-alive" : "close") + "\r\n"
-                    //     "\r\n"
-                    //     "Hello, Client!";
 
+                    // Http response
                     HttpResponse response;
                     try {
                         std::string path = request.GetPath();
                         if (path == "/")
                             path = "/index.html";
                         response.ServeFile(path);
-                        // response.SetStatus(200);
-                        // response.SetHeader("Content-Type", "text/html");
-                        // response.SetBody("<html><body><h1>Hello, WebServ!</h1></body></html>");
-                        // response.SetKeepAlive(true);
+                        if (keep_alive == true)
+                            response.SetKeepAlive(true);
+                        else
+                            response.SetKeepAlive(false);
                     } catch (std::exception &e) {
                         std::cerr << e.what() << std::endl;
                         close(event_fd);
-                        continue;
                     }
                     std::string responseStr = response.ToString();
 
-                    // send(event_fd, response.c_str(), response.size(), 0);
                     send(event_fd, responseStr.c_str(), responseStr.size(), 0);
                     if (keep_alive == false)
                     {
