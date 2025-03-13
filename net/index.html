@@ -9,11 +9,35 @@
         <h1>Bienvenue sur Webserv</h1>
         <ul>
             <li><a href="/static/test.html">Test fichiers statiques</a></li>
-            <li><a href="/cgi/test.py">Test CGI (Python)</a></li>
-            <!-- <li><a href="/cgi-bin/test.php">Test CGI (PHP)</a></li> -->
+
             <li><a href="/errors/404.html">Test erreur 404</a></li>
-            <li><a href="/cgi/upload.py">Test Upload</a></li>
-            <li><a href="/cgi/delete.py">Test DELETE</a></li>
+
+            <p></p>
+
+            <li><a href="/cgi/test.py">Test CGI</a></li>
+
+            <form action="/cgi/post.py" method="POST">
+                <label for="name">Nom :</label>
+                <input type="text" id="name" name="name">
+                <input type="submit" value="Envoyer">
+            </form>
+
+            <button id="deleteButton">Supprimer</button>
+            <script>
+                document.getElementById("deleteButton").addEventListener("click", function() {
+                    fetch("/delete/resource", {
+                        method: "DELETE",
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        alert(data);
+                    })
+                    .catch(error => {
+                        console.error("Erreur:", error);
+                    });
+                });
+            </script>
+
             <li><a href="/cgi/redirects.py">Test Redirections</a></li>
         </ul>
     </body>
