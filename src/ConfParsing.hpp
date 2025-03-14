@@ -1,31 +1,36 @@
 #pragma once
 
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
-#include <algorithm>
+# include <iostream>
+# include <string>
+# include <fstream>
+# include <sstream>
+# include <stdexcept>
+# include <algorithm>
+# include <map>
+# include <vector>
+# include <ctype.h>
+# include <list>
+# include <stack>
 
 #include "Utils.hpp"
-
-#define CONF_PATH "config/default.conf"
 
 class ConfParsing
 {
     private:
-        unsigned int    _port;
-        std::string     _host; 
+        std::list< std::multimap< std::string, std::vector<std::string> > > _def;
+        std::string _path;
+
     public:
-        ConfParsing();
+        ConfParsing(std::string arg);
         ConfParsing(const ConfParsing &copy);
 		ConfParsing &operator=(const ConfParsing &copy);
         ~ConfParsing();
 
         // Other function
-        unsigned int    getPort(void) const;
-        std::string     getHost(void) const;
-        void parsConf(void);
+        void ParseConfigurationFile(void);
+        std::string parsConfDeux(std::string ligne);
+		const std::list< std::multimap< std::string, std::vector<std::string> > > &getConf(void) const;
+        std::list< std::vector<std::string> > getLocation(const ConfParsing &conf) const;
 
 		// Exceptions
 		class BadParsingException : public std::exception {
@@ -35,3 +40,5 @@ class ConfParsing
 				}
 		};
 };
+
+std::ostream &      operator<<(std::ostream &, ConfParsing const & src);

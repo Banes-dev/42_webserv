@@ -23,11 +23,6 @@ Server::~Server(void)
 
 
 // Other function
-void Server::ParseConfigurationFile(std::string arg)
-{
-	std::cout << Green << "Configuration file : " << arg << " parsed" << Reset_Color << std::endl;
-}
-
 bool running = true;
 void handle_signal(int signal)
 {
