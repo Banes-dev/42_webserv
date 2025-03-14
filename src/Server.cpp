@@ -29,9 +29,30 @@ void handle_signal(int signal)
     if (signal == SIGINT)
         running = false;
 }
-void Server::InitSocket(void)
+void Server::InitSocket(const std::list< std::multimap< std::string, std::vector<std::string> > > &conf)
 {
 	signal(SIGINT, handle_signal);
+
+    std::list< std::multimap<std::string, std::vector<std::string> > >::const_iterator it = conf.begin();
+    while(it != conf.end())
+    {
+        std::multimap< std::string, std::vector<std::string> > vi = *it;
+        std::multimap<std::string, std::vector<std::string> >::const_iterator vit = vi.find("listen");
+        std::vector<std::string> aa = vit->second;
+        std::cout << aa[0] << std::endl;
+    
+        // std::multimap< std::string, std::vector<std::string> >::const_iterator vi = it->begin();
+        // while (vi != it->end())
+        // {
+        //     std::cout << vi->first << "  ->  ";
+        //     for (std::vector<std::string>::const_iterator it = vi->second.begin(); it != vi->second.end(); it++)
+        //         std::cout << *it << "  =>  ";
+        //     std::cout << std::endl;
+        //     vi++;
+        // }
+        // std::cout << std::endl << " list " << std::endl << std::endl;
+        it++;
+    }
 
     // 1. Création du socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,7 +65,6 @@ void Server::InitSocket(void)
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = inet_addr("127.0.0.1");
     address.sin_port = htons(PORT);
-
 	addrlen = sizeof(address);
 
     // 3. Liaison du socket au port

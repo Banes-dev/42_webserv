@@ -4,6 +4,8 @@
 #include <iomanip> 		// std::setw, std::setfill
 #include <fstream>		// file gestion
 #include <sstream>		// text gestion
+#include <vector> 		// vector
+#include <list> 		// list
 #include <map> 			// map
 #include <algorithm> 	// algo
 #include <unistd.h>		// close etc
@@ -41,7 +43,7 @@ class Server
 		~Server();
 
 		// Other function
-        void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
+        void InitSocket(const std::list< std::multimap< std::string, std::vector<std::string> > > &conf);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
         void ManageConnection(void);          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
 		static std::string GetTime(void);
 
