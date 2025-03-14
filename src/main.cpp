@@ -3,7 +3,7 @@
 
 #include "Server.hpp"
 
-int main(int argc, char**argv)
+int main(int argc, char**argv, char **env)
 {
     // check args
     (void)argv;
@@ -18,7 +18,7 @@ int main(int argc, char**argv)
         Server server;
         server.ParseConfigurationFile(argv[1]); // Lire le fichier et mettre les infos dans les private du server
         server.InitSocket();                    // Initialiser les sockets pour chaque server et les mettres en ecoute
-        server.ManageConnection();              // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+        server.ManageConnection(env);              // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return (1);

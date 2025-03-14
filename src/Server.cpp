@@ -78,7 +78,7 @@ void Server::InitSocket(void)
         std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl << std::endl;
 }
 
-void Server::ManageConnection(void)
+void Server::ManageConnection(char **env)
 {
 	// 7. Boucle principale
     struct epoll_event events[MAX_EVENTS];
@@ -199,15 +199,15 @@ void Server::ManageConnection(void)
                         close(event_fd);
                     }
 
-                    std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << std::endl;
-/*                    char    *data = getenv("QUERY-STRING");
-                    printf(" data %s\n", data);
+                    std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << request.GetVersion() << std::endl;
+//                    char    *data = getenv("QUERY_STRING");
+//                    printf(" data %s\n", data);
                     for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
                     {
                         std::cout << itt->first << " - " << itt->second << std::endl;
-                    }*/
-                    CgiExecution    abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetHeaders());
-                    abc.methodeType();
+                    }
+                    CgiExecution    abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                    abc.methodeType(env);
                 }
             }
         }

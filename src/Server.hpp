@@ -49,7 +49,7 @@ class Server
 		// Other function
         void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server
         void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
-        void ManageConnection(void);          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+        void ManageConnection(char **env);          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
 		static std::string GetTime(void);
 
 		// Exceptions
