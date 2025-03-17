@@ -84,13 +84,13 @@ std::string GetMimeType(const std::string &filePath)
     if (ext == ".svg") return "image/svg+xml";
     return "application/octet-stream";
 }
-void HttpResponse::ServeFile(const std::string &filePath)
+void HttpResponse::ServeFile(const std::string &root, const std::string &filePath, const std::string &error404, const std::string &error500)
 {
-    std::string fullPath = "net" + filePath;
+    std::string fullPath = root + filePath;
 
     if (!FileExists(fullPath))
     {
-        fullPath = "net/errors/404.html";
+        fullPath = error404;
         std::ifstream file(fullPath.c_str(), std::ios::binary);
         std::ostringstream buffer;
         buffer << file.rdbuf();
@@ -105,7 +105,7 @@ void HttpResponse::ServeFile(const std::string &filePath)
     std::ifstream file(fullPath.c_str(), std::ios::binary);
     if (!file.is_open())
     {
-        fullPath = "net/errors/500.html";
+        fullPath = error500;
         file.open(fullPath.c_str(), std::ios::binary);
         std::ostringstream buffer;
         buffer << file.rdbuf();

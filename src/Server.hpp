@@ -32,7 +32,8 @@ class Server
 {
 	private:
 		// int server_fd;
-		std::vector<int> server_fds;
+		std::vector<int> _server_fds;
+		std::map<int, std::multimap< std::string, std::vector<std::string> > > _serv_info;
 		int epoll_fd;
 		struct sockaddr_in address;
 		socklen_t addrlen;

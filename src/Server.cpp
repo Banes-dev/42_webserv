@@ -62,6 +62,26 @@ void Server::InitSocket(const std::list< std::multimap< std::string, std::vector
         std::vector<std::string> recup_host = it_host->second;
         // std::cout << recup_host[0] << std::endl;
         std::string host = recup_host[0];
+        // root
+        std::multimap<std::string, std::vector<std::string> >::const_iterator it_root = vi.find("root");
+        if (it_root == vi.end())
+        {
+            ++it;
+            continue;
+        }
+        std::vector<std::string> recup_root = it_root->second;
+        // std::cout << recup_root[0] << std::endl;
+        std::string root = recup_root[0];
+        // index
+        std::multimap<std::string, std::vector<std::string> >::const_iterator it_index = vi.find("index");
+        if (it_index == vi.end())
+        {
+            ++it;
+            continue;
+        }
+        std::vector<std::string> recup_index = it_index->second;
+        // std::cout << recup_index[0] << std::endl;
+        std::string index = recup_index[0];
 
         // 1. Création du socket
         int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -94,7 +114,8 @@ void Server::InitSocket(const std::list< std::multimap< std::string, std::vector
         if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) < 0)
             throw EpollException();
 
-        server_fds.push_back(server_fd);
+        _server_fds.push_back(server_fd);
+        _serv_info[server_fd] = *it;
 
         char draw_host[NI_MAXHOST];
         if (getnameinfo((struct sockaddr*)&address, sizeof(address), draw_host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
@@ -140,7 +161,7 @@ void Server::ManageConnection(void)
             int event_fd = events[i].data.fd;
 
             // 8.1 Nouvelle connexion entrante
-            if (std::find(server_fds.begin(), server_fds.end(), event_fd) != server_fds.end())
+            if (std::find(_server_fds.begin(), _server_fds.end(), event_fd) != _server_fds.end())
 			{
                 int new_socket = accept(event_fd, (struct sockaddr*)&address, &addrlen);
                 if (new_socket < 0)
@@ -160,6 +181,8 @@ void Server::ManageConnection(void)
                 client_ev.events = EPOLLIN; // EPOLLET| EPOLLONESHOT
                 client_ev.data.fd = new_socket;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, &client_ev);
+
+                _serv_info[new_socket] = _serv_info[event_fd];
             }
             // 8.2 Requête d'un client existant
             else {
@@ -173,6 +196,29 @@ void Server::ManageConnection(void)
                     close(event_fd);
                 }
 				else {
+                    // Get config info for the socket
+                    std::string root;
+                    std::string index;
+                    std::string error404;
+                    std::string error500;
+                    std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
+                    if (map_it != _serv_info.end())
+                    {
+                        std::multimap<std::string, std::vector<std::string> > mmap = map_it->second;
+                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_root = mmap.find("root");
+                        if (it_root != mmap.end())
+                            root = it_root->second[0];
+                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_index = mmap.find("index");
+                        if (it_index != mmap.end())
+                            index = it_index->second[0];
+                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_error404 = mmap.find("error_page404");
+                        if (it_error404 != mmap.end())
+                            error404 = it_error404->second[0];
+                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_error500 = mmap.find("error_page500");
+                        if (it_error500 != mmap.end())
+                            error500 = it_error500->second[0];
+                    }
+
                     // Parsing Http request
                     HttpRequest request;
                     try {
@@ -190,14 +236,13 @@ void Server::ManageConnection(void)
                     if (it != headers.end() && it->second == "keep-alive")
                         keep_alive = true;
 
-
                     // Http response
                     HttpResponse response;
                     try {
                         std::string path = request.GetPath();
                         if (path == "/")
-                            path = "/index.html";
-                        response.ServeFile(path);
+                            path = "/" + index;
+                        response.ServeFile(root, path, error404, error500);
                         if (keep_alive == true)
                             response.SetKeepAlive(true);
                         else
@@ -221,7 +266,7 @@ void Server::ManageConnection(void)
     }
     
     // 9. Fermeture du socket client
-    for (std::vector<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
+    for (std::vector<int>::iterator it = _server_fds.begin(); it != _server_fds.end(); ++it)
         close(*it);
     close(epoll_fd);
 	std::cout << std::endl << std::endl << Deny << Red << " Server close" << Reset_Color << std::endl << std::endl;
