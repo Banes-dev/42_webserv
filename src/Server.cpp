@@ -33,67 +33,78 @@ void Server::InitSocket(const std::list< std::multimap< std::string, std::vector
 {
 	signal(SIGINT, handle_signal);
 
-    std::list< std::multimap<std::string, std::vector<std::string> > >::const_iterator it = conf.begin();
-    while(it != conf.end())
-    {
-        std::multimap< std::string, std::vector<std::string> > vi = *it;
-        std::multimap<std::string, std::vector<std::string> >::const_iterator vit = vi.find("listen");
-        std::vector<std::string> aa = vit->second;
-        std::cout << aa[0] << std::endl;
-    
-        // std::multimap< std::string, std::vector<std::string> >::const_iterator vi = it->begin();
-        // while (vi != it->end())
-        // {
-        //     std::cout << vi->first << "  ->  ";
-        //     for (std::vector<std::string>::const_iterator it = vi->second.begin(); it != vi->second.end(); it++)
-        //         std::cout << *it << "  =>  ";
-        //     std::cout << std::endl;
-        //     vi++;
-        // }
-        // std::cout << std::endl << " list " << std::endl << std::endl;
-        it++;
-    }
-
-    // 1. Création du socket
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == 0)
-		throw SocketException();
-	int flags = fcntl(server_fd, F_GETFL, 0);
-    fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
-
-    // 2. Configuration de l'adresse
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    address.sin_port = htons(PORT);
-	addrlen = sizeof(address);
-
-    // 3. Liaison du socket au port
-    int opt = 1;
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-        throw SetsockoptException();
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
-		throw BindException();
-
-    // 4. Mise en écoute
-    if (listen(server_fd, SOMAXCONN) < 0)
-		throw ListenException();
-
-    // 5. Création de l'instance epoll
+    // Création de l'instance epoll
     epoll_fd = epoll_create1(0);
     if (epoll_fd < 0)
 		throw EpollException();
 
-    // 6. Ajout du socket serveur à epoll
-    struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = server_fd;
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev);
+    std::list< std::multimap<std::string, std::vector<std::string> > >::const_iterator it = conf.begin();
+    while(it != conf.end())
+    {
+        std::multimap< std::string, std::vector<std::string> > vi = *it;
+        // port
+        std::multimap<std::string, std::vector<std::string> >::const_iterator it_port = vi.find("listen");
+        if (it_port == vi.end())
+        {
+            ++it;
+            continue;
+        }
+        std::vector<std::string> recup_port = it_port->second;
+        // std::cout << recup_port[0] << std::endl;
+        int port = std::atoi(recup_port[0].c_str());
+        // adress
+        std::multimap<std::string, std::vector<std::string> >::const_iterator it_host = vi.find("host");
+        if (it_host == vi.end())
+        {
+            ++it;
+            continue;
+        }
+        std::vector<std::string> recup_host = it_host->second;
+        // std::cout << recup_host[0] << std::endl;
+        std::string host = recup_host[0];
 
-    char host[NI_MAXHOST];
-    if (getnameinfo((struct sockaddr*)&address, sizeof(address), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
-        std::cerr << "Error getting address" << std::endl;
-    else
-        std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl << std::endl;
+        // 1. Création du socket
+        int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd == 0)
+            throw SocketException();
+        int flags = fcntl(server_fd, F_GETFL, 0);
+        fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
+
+        // 2. Configuration de l'adresse
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = inet_addr(host.c_str());
+        address.sin_port = htons(port);
+        addrlen = sizeof(address);
+
+        // 3. Liaison du socket au port
+        int opt = 1;
+        if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+            throw SetsockoptException();
+        if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+            throw BindException();
+
+        // 4. Mise en écoute
+        if (listen(server_fd, SOMAXCONN) < 0)
+            throw ListenException();
+
+        // 5. Ajout du socket serveur à epoll
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = server_fd;
+        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev) < 0)
+            throw EpollException();
+
+        server_fds.push_back(server_fd);
+
+        char draw_host[NI_MAXHOST];
+        if (getnameinfo((struct sockaddr*)&address, sizeof(address), draw_host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0)
+            std::cerr << "Error getting address" << std::endl;
+        else
+            std::cout << Green << "Serveur listen : " << server_fd << " - " << draw_host << ":" << port << Reset_Color << std::endl;
+
+        it++;
+    }
+    std::cout << std::endl;
 }
 
 void Server::ManageConnection(void)
@@ -129,9 +140,9 @@ void Server::ManageConnection(void)
             int event_fd = events[i].data.fd;
 
             // 8.1 Nouvelle connexion entrante
-            if (event_fd == server_fd)
+            if (std::find(server_fds.begin(), server_fds.end(), event_fd) != server_fds.end())
 			{
-                int new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen);
+                int new_socket = accept(event_fd, (struct sockaddr*)&address, &addrlen);
                 if (new_socket < 0)
 				{
                     std::cerr << "Accept error" << std::endl;
@@ -210,7 +221,8 @@ void Server::ManageConnection(void)
     }
     
     // 9. Fermeture du socket client
-    close(server_fd);
+    for (std::vector<int>::iterator it = server_fds.begin(); it != server_fds.end(); ++it)
+        close(*it);
     close(epoll_fd);
 	std::cout << std::endl << std::endl << Deny << Red << " Server close" << Reset_Color << std::endl << std::endl;
 }

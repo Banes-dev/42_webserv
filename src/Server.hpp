@@ -4,6 +4,7 @@
 #include <iomanip> 		// std::setw, std::setfill
 #include <fstream>		// file gestion
 #include <sstream>		// text gestion
+#include <string>		// stoi()
 #include <vector> 		// vector
 #include <list> 		// list
 #include <map> 			// map
@@ -23,14 +24,15 @@
 #include "Utils.hpp"
 
 
-#define PORT 8080
+// #define PORT 8080
 #define MAX_EVENTS 100
 #define BUFFER_SIZE 4096
 
 class Server
 {
 	private:
-		int server_fd;
+		// int server_fd;
+		std::vector<int> server_fds;
 		int epoll_fd;
 		struct sockaddr_in address;
 		socklen_t addrlen;
