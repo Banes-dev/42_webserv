@@ -18,10 +18,10 @@ ${NAME}: ${OBJS}
 	${COMP} ${CFLAGS} -c $< -o $@
 
 clean:
-	rm -f ${OBJS}
+	rm -rf ${OBJS}
 
 fclean:	clean
-	rm -f ${NAME}
+	rm -rf ${NAME}
 
 re:	fclean all
 

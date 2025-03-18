@@ -17,6 +17,7 @@
 # include <unistd.h>
 # include <string.h>
 # include "Utils.hpp"
+# include <fstream>
 
 
 class CgiExecution
@@ -30,8 +31,7 @@ class CgiExecution
         void                methodeType(char **env);
         void                parsQueryString(std::string & str);
         void                parsBody(std::string & str);
-        void                addEnv(void);
-        void                executeCgi(char **env);
+        void                executeCgi(char **envp);
         void                functionDelete();
 
     private:
@@ -43,3 +43,6 @@ class CgiExecution
         std::string     _version;
         std::map<std::string, std::string> const &   _header;
 };
+
+void        ft_fre(char **str);
+char*       ft_strdup(const char * str);
