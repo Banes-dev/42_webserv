@@ -41,4 +41,4 @@ class ConfParsing
 		};
 };
 
-std::ostream &      operator<<(std::ostream &, ConfParsing const & src);
+std::ostream &operator<<(std::ostream &, ConfParsing const &src);

@@ -62,26 +62,6 @@ void Server::InitSocket(const std::list< std::multimap< std::string, std::vector
         std::vector<std::string> recup_host = it_host->second;
         // std::cout << recup_host[0] << std::endl;
         std::string host = recup_host[0];
-        // root
-        std::multimap<std::string, std::vector<std::string> >::const_iterator it_root = vi.find("root");
-        if (it_root == vi.end())
-        {
-            ++it;
-            continue;
-        }
-        std::vector<std::string> recup_root = it_root->second;
-        // std::cout << recup_root[0] << std::endl;
-        std::string root = recup_root[0];
-        // index
-        std::multimap<std::string, std::vector<std::string> >::const_iterator it_index = vi.find("index");
-        if (it_index == vi.end())
-        {
-            ++it;
-            continue;
-        }
-        std::vector<std::string> recup_index = it_index->second;
-        // std::cout << recup_index[0] << std::endl;
-        std::string index = recup_index[0];
 
         // 1. Création du socket
         int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -201,6 +181,7 @@ void Server::ManageConnection(void)
                     std::string index;
                     std::string error404;
                     std::string error500;
+                    std::list<std::vector<std::string> > locations;
                     std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
                     if (map_it != _serv_info.end())
                     {
@@ -217,6 +198,12 @@ void Server::ManageConnection(void)
                         std::multimap<std::string, std::vector<std::string> >::const_iterator it_error500 = mmap.find("error_page500");
                         if (it_error500 != mmap.end())
                             error500 = it_error500->second[0];
+
+                        for (std::multimap<std::string, std::vector<std::string> >::const_iterator it = mmap.begin(); it != mmap.end(); ++it)
+                        {
+                            if (it->first == "location")
+                                locations.push_back(it->second);
+                        }
                     }
 
                     // Parsing Http request
@@ -229,6 +216,30 @@ void Server::ManageConnection(void)
                         continue;
                     }
 
+                    // Check path for choice the location
+                    std::string path = request.GetPath();
+                    std::string parse_path;
+                    if (path == "/")
+                        parse_path = "/";
+                    else
+                    {
+                        std::size_t pos = path.find('/', 1);
+                        std::string parse_path = path.substr(0, pos + 1);
+                    }
+                    std::vector<std::string> selectedLocation;
+                    for (std::list<std::vector<std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
+                    {
+                        if (!it_locations->empty() && it_locations->at(0) == parse_path)
+                        {
+                            selectedLocation = *it_locations;
+                            break;
+                        }
+                    }
+                    if (!selectedLocation.empty())
+                        std::cout << "Location trouvée : " << selectedLocation[0] << std::endl;
+                    else
+                        std::cout << "Aucune location correspondante trouvée." << std::endl;
+
                     // Check si keep-alive est dans les headers
                     const std::map<std::string, std::string> &headers = request.GetHeaders();
                     bool keep_alive = false;
@@ -239,7 +250,7 @@ void Server::ManageConnection(void)
                     // Http response
                     HttpResponse response;
                     try {
-                        std::string path = request.GetPath();
+                        // std::string path = request.GetPath();
                         if (path == "/")
                             path = "/" + index;
                         response.ServeFile(root, path, error404, error500);
