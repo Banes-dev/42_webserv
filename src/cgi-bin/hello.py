@@ -2,9 +2,6 @@
 import os
 import sys
 
-#sys.stdin = open(0, mode='r', encoding='utf-8')
-
-
 # Lire la taille du body depuis l'en-tête Content-Length
 content_length = os.environ.get("CONTENT_LENGTH")
 try:
