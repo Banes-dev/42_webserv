@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <ctime> 		// time
 
+#include "ConfParsing.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "CgiExecution.hpp"

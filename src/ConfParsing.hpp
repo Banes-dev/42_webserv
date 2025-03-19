@@ -30,7 +30,7 @@ class ConfParsing
         void ParseConfigurationFile(void);
         std::string parsConfDeux(std::string ligne);
 		const std::list< std::multimap< std::string, std::vector<std::string> > > &getConf(void) const;
-        std::list< std::vector<std::string> > getLocation(const ConfParsing &conf) const;
+        static std::list<std::map<std::string, std::string> > getLocation(const std::multimap< std::string, std::vector<std::string> > &configMap);
 
 		// Exceptions
 		class BadParsingException : public std::exception {

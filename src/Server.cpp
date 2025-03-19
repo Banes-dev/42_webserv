@@ -192,11 +192,15 @@ void Server::ManageConnection(void)
                     std::string index;
                     std::string error404;
                     std::string error500;
-                    std::list<std::vector<std::string> > locations;
+                    // std::list<std::vector<std::string> > locations;
+                    std::list<std::map<std::string, std::string> > locations;
                     std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
                     if (map_it != _serv_info.end())
                     {
                         std::multimap<std::string, std::vector<std::string> > mmap = map_it->second;
+
+                        locations = ConfParsing::getLocation(mmap);
+
                         std::multimap<std::string, std::vector<std::string> >::const_iterator it_root = mmap.find("root");
                         if (it_root != mmap.end())
                             root = it_root->second[0];
@@ -210,11 +214,11 @@ void Server::ManageConnection(void)
                         if (it_error500 != mmap.end())
                             error500 = it_error500->second[0];
 
-                        for (std::multimap<std::string, std::vector<std::string> >::const_iterator it = mmap.begin(); it != mmap.end(); ++it)
-                        {
-                            if (it->first == "location")
-                                locations.push_back(it->second);
-                        }
+                        // for (std::multimap<std::string, std::vector<std::string> >::const_iterator it = mmap.begin(); it != mmap.end(); ++it)
+                        // {
+                        //     if (it->first == "location")
+                        //         locations.push_back(it->second);
+                        // }
                     }
 
                     // Parsing Http request
@@ -237,25 +241,25 @@ void Server::ManageConnection(void)
                         std::size_t pos = path.find('/', 1);
                         parse_path = path.substr(0, pos + 1);
                     }
-                    std::vector<std::string> selectedLocation;
-                    for (std::list<std::vector<std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
+
+                    for (std::list<std::map<std::string, std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
                     {
-                        if (!it_locations->empty() && trim(it_locations->at(0)) == parse_path.c_str())
+                        if (!it_locations->empty())
                         {
-                            selectedLocation = *it_locations;
-                            break;
+                            // std::map<std::string, std::string>::const_iterator it_final = it_locations->find(parse_path.c_str());
+                            // if (it_final != it_locations->end())
+                            // {
+                            //     std::cout << it_final->first << ": " << it_final->second << std::endl;
+                            // }
+                            for (std::map<std::string, std::string>::const_iterator it_map = it_locations->begin(); it_map != it_locations->end(); ++it_map)
+                            {
+                                if (trim(it_map->second) == parse_path.c_str())
+                                {
+                                    std::cout << it_map->first << ": " << it_map->second << std::endl;
+                                }
+                            }
                         }
                     }
-                    if (!selectedLocation.empty())
-                    {
-                        // std::cout << "Location trouvée : " << selectedLocation[0] << std::endl;
-                        std::cout << "Location trouvée :" << std::endl;
-                        for (size_t i = 0; i < selectedLocation.size(); ++i)
-                            std::cout << selectedLocation[i] << std::endl;
-                        // std::cout << "  [" << i << "] " << selectedLocation[i] << std::endl;
-                    }
-                    else
-                        std::cout << "Aucune location correspondante trouvée." << std::endl;
 
                     // Check si keep-alive est dans les headers
                     const std::map<std::string, std::string> &headers = request.GetHeaders();
@@ -289,12 +293,12 @@ void Server::ManageConnection(void)
                         close(event_fd);
                     }
 
-                    // Cgi exec
-                    std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << request.GetVersion() << std::endl;
-                    for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
-                        std::cout << itt->first << " - " << itt->second << std::endl;
-                    CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                    abc.methodeType();
+                    // // Cgi exec
+                    // std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << request.GetVersion() << std::endl;
+                    // for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
+                    //     std::cout << itt->first << " - " << itt->second << std::endl;
+                    // CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                    // abc.methodeType();
                 }
             }
         }
