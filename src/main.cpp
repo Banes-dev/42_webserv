@@ -3,7 +3,7 @@
 
 #include "Server.hpp"
 
-int main(int argc, char**argv, char **env)
+int main(int argc, char**argv)
 {
     // check args
     (void)argv;
@@ -17,8 +17,8 @@ int main(int argc, char**argv, char **env)
         // Check si le .conf est bon (.conf a la fin), si on peut l'ouvrir et le lire
         Server server;
         server.ParseConfigurationFile(argv[1]); // Lire le fichier et mettre les infos dans les private du server
-        server.InitSocket();                    // Initialiser les sockets pour chaque server et les mettres en ecoute
-        server.ManageConnection(env);              // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+//        server.InitSocket();                    // Initialiser les sockets pour chaque server et les mettres en ecoute
+//        server.ManageConnection(env);              // Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
         return (1);
@@ -44,17 +44,17 @@ int main(int argc, char**argv, char **env)
     {
         ConfParsing     cpp(argv[1]);
         cpp.parsConfUn();
-/*        std::list< std::vector<std::string> >      result;
-        result = cpp.getLocation(cpp);
-        for (std::list< std::vector<std::string> >::iterator it = result.begin(); it != result.end(); it++)
+        std::list<std::map<std::string, std::string> >      result;
+        result = cpp.getLocation(cpp.getConf().front());
+        for (std::list<std::map<std::string, std::string> >::iterator it = result.begin(); it != result.end(); it++)
         {
-            for (std::vector<std::string>::const_iterator vit = it->begin(); vit != it->end(); ++vit)
+            for (std::map<std::string, std::string>::const_iterator vit = it->begin(); vit != it->end(); ++vit)
             {
-                std::cout << *vit << " ";
+                std::cout << vit->first << " && " << vit->second;
                 std::cout << std::endl;
             }
             std::cout << std::endl;
-        }*/
+        }
     }
     catch(const std::exception& e)
     {

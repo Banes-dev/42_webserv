@@ -33,7 +33,7 @@ class ConfParsing
 
         // Other function
         const std::list< std::multimap< std::string, std::vector<std::string> > > &    getConf(void) const;
-        std::list< std::vector<std::string> >              getLocation(ConfParsing const & conf) const;
+        std::list<std::map<std::string, std::string> >              getLocation(const std::multimap< std::string, std::vector<std::string> > & configMap) const;
 
 //        unsigned int    getPort(void) const;
 //        std::string     getHost(void) const;
