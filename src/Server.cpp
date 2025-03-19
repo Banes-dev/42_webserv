@@ -23,6 +23,17 @@ Server::~Server(void)
 
 
 // Other function
+std::string trim(std::string str)
+{
+    size_t first = str.find_first_not_of(" \r\n\t");
+    if (first == std::string::npos)
+        return ("");
+    else
+    {
+        size_t last = str.find_last_not_of(" \r\n\t");
+        return (str.substr(first, (last - first + 1)));
+    }
+}
 bool running = true;
 void handle_signal(int signal)
 {
@@ -224,19 +235,25 @@ void Server::ManageConnection(void)
                     else
                     {
                         std::size_t pos = path.find('/', 1);
-                        std::string parse_path = path.substr(0, pos + 1);
+                        parse_path = path.substr(0, pos + 1);
                     }
                     std::vector<std::string> selectedLocation;
                     for (std::list<std::vector<std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
                     {
-                        if (!it_locations->empty() && it_locations->at(0) == parse_path)
+                        if (!it_locations->empty() && trim(it_locations->at(0)) == parse_path.c_str())
                         {
                             selectedLocation = *it_locations;
                             break;
                         }
                     }
                     if (!selectedLocation.empty())
-                        std::cout << "Location trouvée : " << selectedLocation[0] << std::endl;
+                    {
+                        // std::cout << "Location trouvée : " << selectedLocation[0] << std::endl;
+                        std::cout << "Location trouvée :" << std::endl;
+                        for (size_t i = 0; i < selectedLocation.size(); ++i)
+                            std::cout << selectedLocation[i] << std::endl;
+                        // std::cout << "  [" << i << "] " << selectedLocation[i] << std::endl;
+                    }
                     else
                         std::cout << "Aucune location correspondante trouvée." << std::endl;
 
@@ -271,6 +288,13 @@ void Server::ManageConnection(void)
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                         close(event_fd);
                     }
+
+                    // Cgi exec
+                    std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << request.GetVersion() << std::endl;
+                    for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
+                        std::cout << itt->first << " - " << itt->second << std::endl;
+                    CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                    abc.methodeType();
                 }
             }
         }

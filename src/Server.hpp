@@ -21,17 +21,16 @@
 
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "CgiExecution.hpp"
 #include "Utils.hpp"
 
 
-// #define PORT 8080
 #define MAX_EVENTS 100
 #define BUFFER_SIZE 4096
 
 class Server
 {
 	private:
-		// int server_fd;
 		std::vector<int> _server_fds;
 		std::map<int, std::multimap< std::string, std::vector<std::string> > > _serv_info;
 		int epoll_fd;
