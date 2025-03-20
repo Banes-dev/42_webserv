@@ -112,12 +112,12 @@ char *ft_strdup(const char *str)
 void CgiExecution::parsQueryString(std::string &str)
 {
     (void)str;
-    std::string _path = "sfgfgfs?name=guigui&comment=pars";
+    // std::string _path = "sfgfgfs?name=guigui&comment=pars";
     std::cout << "cgiexecution" << std::endl;
-    size_t t = _path.find('?');
+    size_t t = str.find('?');
     if (t != std::string::npos && ++t != std::string::npos)
     {
-        std::string path = _path.substr(t);
+        std::string path = str.substr(t);
         std::cout << Blue << path << Reset_Color << std::endl;
         _realPath = path;
     }

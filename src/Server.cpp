@@ -34,6 +34,22 @@ std::string trim(std::string str)
         return (str.substr(first, (last - first + 1)));
     }
 }
+bool HasPyExtension(const std::string &url, const std::string &ext)
+{
+    size_t lastSlashPos = url.find_last_of('/');
+    std::string filename;
+    if (lastSlashPos != std::string::npos)
+        filename = url.substr(lastSlashPos + 1);
+    else
+        filename = url;
+    size_t dotPos = filename.find_last_of('.');
+    if (dotPos != std::string::npos)
+    {
+        std::string extension = filename.substr(dotPos);
+        return (extension == ext);
+    }
+    return (false);
+}
 bool running = true;
 void handle_signal(int signal)
 {
@@ -294,21 +310,31 @@ void Server::ManageConnection(void)
                     if (it != headers.end() && it->second == "keep-alive")
                         keep_alive = true;
 
-                    // Http response
-                    HttpResponse response;
-                    try {
-                        if (path == "/")
-                            path = "/" + selected_location["index"];
-                        response.ServeFile(selected_location["root"], path, error404, error500);
-                        if (keep_alive == true)
-                            response.SetKeepAlive(true);
-                        else
-                            response.SetKeepAlive(false);
-                    } catch (std::exception &e) {
-                        std::cerr << e.what() << std::endl;
-                        close(event_fd);
+                    std::string responseStr;
+                    // Cgi exec
+                    if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
+                    {
+                        CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                        abc.methodeType();
                     }
-                    std::string responseStr = response.ToString();
+                    else
+                    {
+                        // Http response
+                        HttpResponse response;
+                        try {
+                            if (path[path.size() - 1] == '/')
+                                path += selected_location["index"];
+                            response.ServeFile(selected_location["root"], path, error404, error500);
+                            if (keep_alive == true)
+                                response.SetKeepAlive(true);
+                            else
+                                response.SetKeepAlive(false);
+                        } catch (std::exception &e) {
+                            std::cerr << e.what() << std::endl;
+                            close(event_fd);
+                        }
+                        responseStr = response.ToString();
+                    }
 
                     send(event_fd, responseStr.c_str(), responseStr.size(), 0);
                     if (keep_alive == false)
@@ -317,13 +343,6 @@ void Server::ManageConnection(void)
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                         close(event_fd);
                     }
-
-                    // // Cgi exec
-                    // std::cout << request.GetMethod() << std::endl << request.GetPath() << std::endl << request.GetBody() << request.GetVersion() << std::endl;
-                    // for (std::map<std::string, std::string>::const_iterator itt = request.GetHeaders().begin(); itt != request.GetHeaders().end(); itt++)
-                    //     std::cout << itt->first << " - " << itt->second << std::endl;
-                    // CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                    // abc.methodeType();
                 }
             }
         }
