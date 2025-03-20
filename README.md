@@ -12,3 +12,11 @@ Todo :
 
 Banes todo :
 - Fermer la connection seulement quand connection: close dans le header et renvoyer dans la reponse http connection: keep-alive ou connection: close
+
+televerser les fichiers
+page cgi
+requete get
+reponse
+autoindex off
+fragmenter defragmenter
+message 500 erreur cgi

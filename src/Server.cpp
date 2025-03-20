@@ -78,7 +78,7 @@ void Server::InitSocket(void)
         std::cout << Green << "Serveur listen : " << server_fd << " - " << host << ":" << PORT << Reset_Color << std::endl << std::endl;
 }
 
-void Server::ManageConnection(char **env)
+void Server::ManageConnection()
 {
 	// 7. Boucle principale
     struct epoll_event events[MAX_EVENTS];
@@ -207,7 +207,7 @@ void Server::ManageConnection(char **env)
                         std::cout << itt->first << " - " << itt->second << std::endl;
                     }
                     CgiExecution    abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                    abc.methodeType(env);
+                    abc.methodeType();
                 }
             }
         }

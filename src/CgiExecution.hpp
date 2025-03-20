@@ -28,7 +28,7 @@ class CgiExecution
         ~CgiExecution(void);
 
         CgiExecution &      operator=(CgiExecution const & rhs);
-        void                methodeType(char **env);
+        void                methodeType();
         void                parsQueryString(std::string & str);
         void                parsBody(std::string & str);
         void                executeCgi(char **envp);
