@@ -188,11 +188,9 @@ void Server::ManageConnection(void)
                 }
 				else {
                     // Get config info for the socket
-                    std::string root;
-                    std::string index;
+                    std::string bodymax;
                     std::string error404;
                     std::string error500;
-                    // std::list<std::vector<std::string> > locations;
                     std::list<std::map<std::string, std::string> > locations;
                     std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
                     if (map_it != _serv_info.end())
@@ -201,24 +199,36 @@ void Server::ManageConnection(void)
 
                         locations = ConfParsing::getLocation(mmap);
 
-                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_root = mmap.find("root");
-                        if (it_root != mmap.end())
-                            root = it_root->second[0];
-                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_index = mmap.find("index");
-                        if (it_index != mmap.end())
-                            index = it_index->second[0];
+                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_bodymax = mmap.find("body-max");
+                        if (it_bodymax != mmap.end())
+                            bodymax = it_bodymax->second[0];
                         std::multimap<std::string, std::vector<std::string> >::const_iterator it_error404 = mmap.find("error_page404");
                         if (it_error404 != mmap.end())
                             error404 = it_error404->second[0];
                         std::multimap<std::string, std::vector<std::string> >::const_iterator it_error500 = mmap.find("error_page500");
                         if (it_error500 != mmap.end())
                             error500 = it_error500->second[0];
+                    }
 
-                        // for (std::multimap<std::string, std::vector<std::string> >::const_iterator it = mmap.begin(); it != mmap.end(); ++it)
-                        // {
-                        //     if (it->first == "location")
-                        //         locations.push_back(it->second);
-                        // }
+                    // Limit body size
+                    static std::map<int, int> clientBodySize;
+                    clientBodySize[event_fd] += valread;
+                    std::istringstream iss(bodymax);
+                    int result = 0;
+                    iss >> result;
+                    if (clientBodySize[event_fd] > result)
+                    {
+                        std::cout << Red << Server::GetTime() << " " << "Body too large from client " << event_fd << Reset_Color << std::endl;
+
+                        HttpResponse response;
+                        response.SetStatus(413);
+                        response.SetKeepAlive(false);
+                        std::string responseStr = response.ToString();
+                        send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                        close(event_fd);
+                        clientBodySize.erase(event_fd);
                     }
 
                     // Parsing Http request
@@ -241,23 +251,39 @@ void Server::ManageConnection(void)
                         std::size_t pos = path.find('/', 1);
                         parse_path = path.substr(0, pos + 1);
                     }
-
+                    std::map<std::string, std::string> selected_location;
                     for (std::list<std::map<std::string, std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
                     {
                         if (!it_locations->empty())
                         {
-                            // std::map<std::string, std::string>::const_iterator it_final = it_locations->find(parse_path.c_str());
-                            // if (it_final != it_locations->end())
-                            // {
-                            //     std::cout << it_final->first << ": " << it_final->second << std::endl;
-                            // }
-                            for (std::map<std::string, std::string>::const_iterator it_map = it_locations->begin(); it_map != it_locations->end(); ++it_map)
+                            std::map<std::string, std::string>::const_iterator it_location = it_locations->find("location");
+                            if (it_location != it_locations->end() && trim(it_location->second) == parse_path.c_str())
                             {
-                                if (trim(it_map->second) == parse_path.c_str())
-                                {
-                                    std::cout << it_map->first << ": " << it_map->second << std::endl;
-                                }
+                                for (std::map<std::string, std::string>::const_iterator it_map = it_locations->begin(); it_map != it_locations->end(); ++it_map)
+                                    selected_location = *it_locations;
+                                    // std::cout << it_map->first << ": " << it_map->second << std::endl;
+                                break;
                             }
+                        }
+                    }
+
+                    // Check if method is ok
+                    if (selected_location["allow_methods"] != "GET POST DELETE")
+                    {
+                        if (selected_location["allow_methods"] == "GET POST" && request.GetMethod() == "DELETE")
+                        {
+                            close(event_fd);
+                            continue; 
+                        }
+                        if (selected_location["allow_methods"] == "GET DELETE" && request.GetMethod() == "POST")
+                        {
+                            close(event_fd);
+                            continue; 
+                        }
+                        if (selected_location["allow_methods"] == "POST DELETE" && request.GetMethod() == "GET")
+                        {
+                            close(event_fd);
+                            continue; 
                         }
                     }
 
@@ -271,10 +297,9 @@ void Server::ManageConnection(void)
                     // Http response
                     HttpResponse response;
                     try {
-                        // std::string path = request.GetPath();
                         if (path == "/")
-                            path = "/" + index;
-                        response.ServeFile(root, path, error404, error500);
+                            path = "/" + selected_location["index"];
+                        response.ServeFile(selected_location["root"], path, error404, error500);
                         if (keep_alive == true)
                             response.SetKeepAlive(true);
                         else

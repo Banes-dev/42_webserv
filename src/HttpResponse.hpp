@@ -30,7 +30,7 @@ class HttpResponse
 		void SetHeader(const std::string &key, const std::string &value);
 		void SetBody(const std::string &body);
 		void SetKeepAlive(const bool keepAlive);
-		void ServeFile(const std::string &root, const std::string &filePath, const std::string &error404, const std::string &error500);
+		void ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500);
 		std::string ToString() const;
 
 		// Exceptions

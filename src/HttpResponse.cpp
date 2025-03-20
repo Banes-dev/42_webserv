@@ -35,6 +35,7 @@ void HttpResponse::SetStatus(const int code)
     messages[401] = "Unauthorized";
     messages[403] = "Forbidden";
     messages[404] = "Not Found";
+    messages[413] = "Request Entity Too Large";
     messages[500] = "Internal Server Error";
     messages[503] = "Service Unavailable";
     if (messages.find(code) != messages.end())
@@ -84,9 +85,9 @@ std::string GetMimeType(const std::string &filePath)
     if (ext == ".svg") return "image/svg+xml";
     return "application/octet-stream";
 }
-void HttpResponse::ServeFile(const std::string &root, const std::string &filePath, const std::string &error404, const std::string &error500)
+void HttpResponse::ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500)
 {
-    std::string fullPath = root + filePath;
+    std::string fullPath = root + file_path;
 
     if (!FileExists(fullPath))
     {
