@@ -26,9 +26,9 @@ for i in range(len(arg)):
 name = namee.split("=")[1] if "=" in namee else "inconnu"
 comment = commentt.split("=")[1] if "=" in commentt else "vide"
 
-print("Content-Type: text/plain\n")  # En-tête HTTP
-print("Données reçues:")
-print(post_data)  # Afficher les données reçues
+#print("Content-Type: text/plain\n")  # En-tête HTTP
+#print("Données reçues:")
+#print(post_data)  # Afficher les données reçues
 
 print ("Content-type:text/html; charset=UTF-8")
 print ()

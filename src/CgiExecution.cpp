@@ -43,8 +43,8 @@ void                CgiExecution::methodeType()
     }
     if (_method == "GET")
         this->parsQueryString(_path);
-//    else if (_method == "POST")
-//        this->parsBody(_body);
+    else if (_method == "POST")
+        this->parsBody(_body);
     else if (_method == "DELETE")
         this->functionDelete();
     std::cout << std::endl << "env" << std::endl;
@@ -114,12 +114,12 @@ char*       ft_strdup(const char * str)
 void                CgiExecution::parsQueryString(std::string & str)
 {
     (void)str;
-//    std::string     _path = "sfgfgfs?name=guigui&comment=pars";
+    std::string     _path = "sfgfgfs?name=guigui&comment=pars";
     std::cout << "cgiexecution" << std::endl;
-    size_t      t = str.find('?');
+    size_t      t = _path.find('?');
     if (t != std::string::npos && ++t != std::string::npos)
     {
-        std::string     path = str.substr(t);
+        std::string     path = _path.substr(t);
         std::cout << Blue << path << Reset_Color << std::endl;
         _realPath = path;
     }
@@ -143,6 +143,13 @@ void    CgiExecution::executeCgi(char **envp)
     pid_t   pid;
     int     filefd;
 
+    filefd = open("hello.txt", O_RDWR | O_TRUNC | O_CREAT, 0644);
+    if (filefd == -1)
+    {
+        std::cout << std::endl << "erreur" << std::endl;
+        return;
+    }
+    write(filefd, _body.c_str(), _body.size());
     if (pipe(pipe_fd) == -1)
     {
         printf("pipe :%s", strerror(errno));
@@ -161,11 +168,6 @@ void    CgiExecution::executeCgi(char **envp)
         close(pipe_fd[0]);
         if (_method == "POST")
         {
-            filefd = open("hello.txt", O_RDONLY);
-            if (filefd == -1)
-            {
-                std::cout << "error fd 2" << std::endl;
-            }
             dup2(filefd, STDIN_FILENO);
             close(filefd);
         }
@@ -189,7 +191,7 @@ void    CgiExecution::executeCgi(char **envp)
     }
     else
     {
-        write(pipe_fd[1], _body.c_str(), _body.size());
+        close(filefd);
         close(pipe_fd[1]);
         std::string     output_cgi = "";
         char            buf[10];
@@ -197,7 +199,7 @@ void    CgiExecution::executeCgi(char **envp)
         while((bytes_read = read(pipe_fd[0], buf, sizeof(buf) - 1)) > 0)
         {
             buf[bytes_read] = '\0';
-            std::cout << "output_cgi " << output_cgi << std::endl;
+//            std::cout << "output_cgi " << output_cgi << std::endl;
             output_cgi += buf;
         }
         if (!output_cgi.empty())
