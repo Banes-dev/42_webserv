@@ -2,11 +2,11 @@
 
 
 // Constructor & Destructor
-CgiExecution::CgiExecution(const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _env("!b"), _realPath(""), _method(method), _path(path), _body(body), _version(version), _header(header)
+CgiExecution::CgiExecution(const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _env("!b"), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
 {
 }
 
-CgiExecution::CgiExecution(const CgiExecution &copy) : _env("!b"), _realPath(""), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _header(copy._header)
+CgiExecution::CgiExecution(const CgiExecution &copy) : _env("!b"), _realPath(""), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _responseCgi(copy._responseCgi), _header(copy._header)
 {
     *this = copy;
 }
@@ -199,8 +199,16 @@ void CgiExecution::executeCgi(char **envp)
             output_cgi += buf;
         }
         if (!output_cgi.empty())
+        {
             std::cout << "output_cgi " << std::endl << Red << output_cgi << Reset_Color << std::endl;
+            _responseCgi = output_cgi;
+        }
         close(pipe_fd[0]);        
     }
     wait(NULL);
+}
+
+std::string CgiExecution::getResponseCgi(void) const
+{
+    return (this->_responseCgi);
 }

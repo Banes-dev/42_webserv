@@ -29,12 +29,11 @@ class CgiExecution
         std::string _path;
         std::string _body;
         std::string _version;
+        std::string _responseCgi;
         std::map<std::string, std::string> const &_header;
     public:
         CgiExecution(const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header);
         CgiExecution(const CgiExecution &src);
-        CgiExecution(std::string const & method, std::string const &path, std::string const & body, std::string const & version, std::map<std::string, std::string> const & header);
-        CgiExecution(CgiExecution const &src);
 		CgiExecution &operator=(const CgiExecution &copy);
         ~CgiExecution(void);
 
@@ -44,6 +43,7 @@ class CgiExecution
         void parsBody(std::string &str);
         void executeCgi(char **envp);
         void functionDelete(void);
+        std::string getResponseCgi(void) const;
 };
 
 void        ft_fre(char **str);
