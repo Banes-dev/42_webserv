@@ -314,7 +314,8 @@ void Server::ManageConnection(void)
                     // Cgi exec
                     if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
                     {
-                        CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                        // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                        CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
                         abc.methodeType();
                     }
                     else
@@ -329,6 +330,7 @@ void Server::ManageConnection(void)
                                 response.SetKeepAlive(true);
                             else
                                 response.SetKeepAlive(false);
+                            response.SetCookieSession(request);
                         } catch (std::exception &e) {
                             std::cerr << e.what() << std::endl;
                             close(event_fd);

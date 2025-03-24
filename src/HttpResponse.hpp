@@ -7,6 +7,9 @@
 #include <algorithm> 	// algo
 #include <fstream>
 #include <sys/stat.h>
+#include <string>
+#include <ctime>
+#include <cstdlib>
 
 #include "HttpRequest.hpp"
 #include "Utils.hpp"
@@ -18,6 +21,7 @@ class HttpResponse
 		int _code;
 		std::string _msg;
 		std::map<std::string, std::string> _headers;
+		std::map<std::string, std::string> _session_map;
 		std::string _body;
 	public:
 		HttpResponse();
@@ -30,6 +34,7 @@ class HttpResponse
 		void SetHeader(const std::string &key, const std::string &value);
 		void SetBody(const std::string &body);
 		void SetKeepAlive(const bool keepAlive);
+		void SetCookieSession(HttpRequest &request);
 		void ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500);
 		std::string ToString() const;
 

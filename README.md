@@ -1,9 +1,9 @@
 # 42_webserv
 
 Todo :
-- Parser le config file (utiliser les info du parse pour le serveur)
-- Mettre en place les CGI et les utiliser etc
+- Recuperer fin de CGI pour envoyer en reponse
+- Bonus avec session de connection en cookies
 
 
 
-- Check si socket et connection faite sont ok avec le sujet
+- Check si projet est ok avec le sujet

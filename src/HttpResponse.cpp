@@ -65,6 +65,47 @@ void HttpResponse::SetKeepAlive(const bool keepAlive)
         SetHeader("Connection", "close");
 }
 
+void initRandom() {
+    static bool initialized = false;
+    if (!initialized)
+    {
+        srand(time(0));
+        initialized = true;
+    }
+}
+std::string generateSessionId(void)
+{
+    initRandom();
+    std::ostringstream oss;
+    oss << "session_" << (rand() % 100000);
+    return (oss.str());
+}
+void HttpResponse::SetCookieSession(HttpRequest &request)
+{
+    std::map<std::string, std::string> headers = request.GetHeaders();
+    std::string session_id;
+    if (headers.find("Cookie") != headers.end())
+    {
+        std::string cookies = headers["Cookie"];
+        size_t pos = cookies.find("session_id=");
+        if (pos != std::string::npos)
+        {
+            session_id = cookies.substr(pos + 11);
+            size_t end = session_id.find(";");
+            if (end != std::string::npos)
+                session_id = session_id.substr(0, end);
+        }
+    }
+    // if (session_id.empty() || this->_session_map.find(session_id) == this->_session_map.end())
+    if (session_id.empty())
+    {
+        session_id = generateSessionId();
+        this->_session_map[session_id] = "UserData";
+    }
+    if (headers.find("Cookie") == headers.end())
+        SetHeader("Set-Cookie", "session_id=" + session_id + "; Path=/; HttpOnly");
+}
+
 bool FileExists(const std::string &filename)
 {
     struct stat buffer;
