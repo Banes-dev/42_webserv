@@ -314,9 +314,10 @@ void Server::ManageConnection(void)
                     // Cgi exec
                     if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
                     {
-                        // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                        CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                        CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                        // CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
                         abc.methodeType();
+                        responseStr = abc.getResponseCgi();
                     }
                     else
                     {

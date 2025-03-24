@@ -32,7 +32,7 @@ void CgiExecution::methodeType(void)
     if (envp == NULL)
         return;
     envp[11] = NULL;
-    std::cout << std::endl;
+    // std::cout << std::endl;
     std::map<std::string, std::string>::const_iterator it3 = _header.find("Content-Length");
     if (it3 == _header.end())
         envp[0] = strdup("CONTENT_LENGTH=0");
@@ -47,7 +47,7 @@ void CgiExecution::methodeType(void)
 //        this->parsBody(_body);
     else if (_method == "DELETE")
         this->functionDelete();
-    std::cout << std::endl << "env" << std::endl;
+    // std::cout << std::endl << "env" << std::endl;
     envp[1] = strdup(("QUERY_STRING=" + _realPath).c_str());
     envp[2] = strdup(("REQUEST_METHOD=" + _method).c_str());
     envp[3] = strdup(("SERVER_SOFTWARE=" + _version).c_str());
@@ -66,10 +66,10 @@ void CgiExecution::methodeType(void)
     envp[8] = strdup("PATH_INFO=");
     envp[9] = strdup("SCRIPT_NAME=");
     envp[10] = strdup("REMOTE_ADDR=");
-    std::cout << std::endl << "env2" << std::endl;
-    for(int i = 0; envp[i] != NULL; i++)
-        printf("%s\n", envp[i]); 
-    std::cout << std::endl;
+    // std::cout << std::endl << "env2" << std::endl;
+    // for(int i = 0; envp[i] != NULL; i++)
+        // printf("%s\n", envp[i]);
+    // std::cout << std::endl;
     executeCgi(envp);
     ft_fre(envp);
 }
@@ -113,20 +113,20 @@ void CgiExecution::parsQueryString(std::string &str)
 {
     (void)str;
     // std::string _path = "sfgfgfs?name=guigui&comment=pars";
-    std::cout << "cgiexecution" << std::endl;
+    // std::cout << "cgiexecution" << std::endl;
     size_t t = str.find('?');
     if (t != std::string::npos && ++t != std::string::npos)
     {
         std::string path = str.substr(t);
-        std::cout << Blue << path << Reset_Color << std::endl;
+        // std::cout << Blue << path << Reset_Color << std::endl;
         _realPath = path;
     }
 }
 
 void CgiExecution::parsBody(std::string &str)
 {
-    std::cout << "cgiexecutionPost" << std::endl;
-    std::cout << Green << str << Reset_Color << std::endl;
+    // std::cout << "cgiexecutionPost" << std::endl;
+    // std::cout << Green << str << Reset_Color << std::endl;
     if (str.empty())
     {
         write(1, "", 1);
@@ -143,14 +143,14 @@ void CgiExecution::executeCgi(char **envp)
 
     if (pipe(pipe_fd) == -1)
     {
-        printf("pipe :%s", strerror(errno));
+        // printf("pipe :%s", strerror(errno));
         ft_fre(envp);
         return;
     }
     pid = fork();
     if (pid == -1)
     {
-        printf("fork :%s", strerror(errno));
+        // printf("fork :%s", strerror(errno));
         ft_fre(envp);
         return;
     }
@@ -195,15 +195,15 @@ void CgiExecution::executeCgi(char **envp)
         while((bytes_read = read(pipe_fd[0], buf, sizeof(buf) - 1)) > 0)
         {
             buf[bytes_read] = '\0';
-            std::cout << "output_cgi " << output_cgi << std::endl;
+            // std::cout << "output_cgi " << output_cgi << std::endl;
             output_cgi += buf;
         }
         if (!output_cgi.empty())
         {
-            std::cout << "output_cgi " << std::endl << Red << output_cgi << Reset_Color << std::endl;
+            // std::cout << "output_cgi " << std::endl << Red << output_cgi << Reset_Color << std::endl;
             _responseCgi = output_cgi;
         }
-        close(pipe_fd[0]);        
+        close(pipe_fd[0]);      
     }
     wait(NULL);
 }
