@@ -14,7 +14,7 @@ int main(int argc, char**argv)
 
     try {
         ConfParsing configuration(argv[1]);				// Lire le fichier et mettre les infos dans les private du server
-;
+
         Server server;
         server.InitSocket(configuration.getConf());		// Initialiser les sockets pour chaque server et les mettres en ecoute
         server.ManageConnection();						// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI

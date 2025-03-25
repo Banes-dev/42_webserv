@@ -2,11 +2,11 @@
 
 
 // Constructor & Destructor
-CgiExecution::CgiExecution(const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _env("!b"), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
+CgiExecution::CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _roothtml(roothtml), _defaut(defaut), _pythonPath(pathPython), _env("!b"), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
 {
 }
 
-CgiExecution::CgiExecution(const CgiExecution &copy) : _env("!b"), _realPath(""), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _responseCgi(copy._responseCgi), _header(copy._header)
+CgiExecution::CgiExecution(const CgiExecution &copy) : _roothtml(copy._roothtml), _defaut(copy._defaut), _pythonPath(copy._pythonPath), _env("!b"), _realPath(""), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _responseCgi(copy._responseCgi), _header(copy._header)
 {
     *this = copy;
 }
@@ -24,7 +24,7 @@ CgiExecution::~CgiExecution(void)
 
 
 // Other function
-void CgiExecution::methodeType(void)
+void CgiExecution::methodeType(std::string &path)
 {
     char **envp;
 
@@ -43,8 +43,8 @@ void CgiExecution::methodeType(void)
     }
     if (_method == "GET")
         this->parsQueryString(_path);
-//    else if (_method == "POST")
-//        this->parsBody(_body);
+   else if (_method == "POST")
+       this->parsBody(_body);
     else if (_method == "DELETE")
         this->functionDelete();
     // std::cout << std::endl << "env" << std::endl;
@@ -63,14 +63,14 @@ void CgiExecution::methodeType(void)
         envp[5] = strdup("SERVER_NAME=");
     envp[6] = strdup("CONTENT_TYPE=");
     envp[7] = strdup("SERVER_PORT=");
-    envp[8] = strdup("PATH_INFO=");
+    envp[8] = strdup(("PATH_INFO=" + _pythonPath).c_str());
     envp[9] = strdup("SCRIPT_NAME=");
     envp[10] = strdup("REMOTE_ADDR=");
     // std::cout << std::endl << "env2" << std::endl;
     // for(int i = 0; envp[i] != NULL; i++)
         // printf("%s\n", envp[i]);
     // std::cout << std::endl;
-    executeCgi(envp);
+    executeCgi(envp, path);
     ft_fre(envp);
 }
 
@@ -113,7 +113,7 @@ void CgiExecution::parsQueryString(std::string &str)
 {
     (void)str;
     // std::string _path = "sfgfgfs?name=guigui&comment=pars";
-    // std::cout << "cgiexecution" << std::endl;
+    // std::cout << "cgiexecution" << " " << str << std::endl;
     size_t t = str.find('?');
     if (t != std::string::npos && ++t != std::string::npos)
     {
@@ -125,21 +125,32 @@ void CgiExecution::parsQueryString(std::string &str)
 
 void CgiExecution::parsBody(std::string &str)
 {
-    // std::cout << "cgiexecutionPost" << std::endl;
+    (void)str;
+    // std::cout << "cgiexecutionPost ";
     // std::cout << Green << str << Reset_Color << std::endl;
-    if (str.empty())
-    {
-        write(1, "", 1);
-        return;
-    }
-    write(0, str.c_str(), str.size());
+    // if (str.empty())
+    // {
+    //     write(1, "", 1);
+    //     return;
+    // }
+    // write(0, str.c_str(), str.size());
 }
 
-void CgiExecution::executeCgi(char **envp)
+void CgiExecution::executeCgi(char **envp, std::string &path)
 {
     int pipe_fd[2];
     pid_t pid;
     int filefd;
+
+    (void)path;
+    filefd = open("hello.txt", O_RDWR | O_TRUNC | O_CREAT, 0644);
+    if (filefd == -1)
+    {
+        std::cout << std::endl << "erreur" << std::endl;
+        return;
+    }
+    write(filefd, _body.c_str(), _body.size());
+    close(filefd);
 
     if (pipe(pipe_fd) == -1)
     {
@@ -162,7 +173,8 @@ void CgiExecution::executeCgi(char **envp)
             filefd = open("hello.txt", O_RDONLY);
             if (filefd == -1)
             {
-                std::cout << "error fd 2" << std::endl;
+                std::cout << "erreur read hello.txt" << std::endl;
+                return;
             }
             dup2(filefd, STDIN_FILENO);
             close(filefd);
@@ -170,7 +182,6 @@ void CgiExecution::executeCgi(char **envp)
         dup2(pipe_fd[1], STDOUT_FILENO);
         close(pipe_fd[1]);
         char **tab;
-
         tab = (char **)malloc(2 * sizeof(char*));
         tab[0] = ft_strdup("net/cgi/hello.py");
         tab[1] = NULL;
@@ -187,7 +198,8 @@ void CgiExecution::executeCgi(char **envp)
     }
     else
     {
-        write(pipe_fd[1], _body.c_str(), _body.size());
+        // write(pipe_fd[1], _body.c_str(), _body.size());
+        // close(filefd);
         close(pipe_fd[1]);
         std::string     output_cgi = "";
         char            buf[10];

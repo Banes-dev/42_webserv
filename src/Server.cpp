@@ -34,21 +34,31 @@ std::string trim(std::string str)
         return (str.substr(first, (last - first + 1)));
     }
 }
+// bool HasPyExtension(const std::string &url, const std::string &ext)
+// {
+//     size_t lastSlashPos = url.find_last_of('/');
+//     std::string filename;
+//     (void)ext;
+//     size_t lastSlashPos = url.find("CGI");
+//     if (lastSlashPos != std::string::npos)
+//         filename = url.substr(lastSlashPos + 1);
+//     else
+//         filename = url;
+//     size_t dotPos = filename.find_last_of('.');
+//     if (dotPos != std::string::npos)
+//     {
+//         std::string extension = filename.substr(dotPos);
+//         return (extension == ext);
+//     }
+//     return (false);
+// }
 bool HasPyExtension(const std::string &url, const std::string &ext)
 {
-    size_t lastSlashPos = url.find_last_of('/');
-    std::string filename;
+    (void)ext;
+    size_t lastSlashPos = url.find("CGI");
     if (lastSlashPos != std::string::npos)
-        filename = url.substr(lastSlashPos + 1);
-    else
-        filename = url;
-    size_t dotPos = filename.find_last_of('.');
-    if (dotPos != std::string::npos)
-    {
-        std::string extension = filename.substr(dotPos);
-        return (extension == ext);
-    }
-    return (false);
+        return (true);
+    return(false);
 }
 bool running = true;
 void handle_signal(int signal)
@@ -316,7 +326,7 @@ void Server::ManageConnection(void)
                     {
                         CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
                         // CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                        abc.methodeType();
+                        abc.methodeType(path);
                         responseStr = abc.getResponseCgi();
                     }
                     else

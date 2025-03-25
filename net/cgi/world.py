@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
  import os
  import sys
  
@@ -14,17 +14,17 @@
      post_data = os.getenv("QUERY_STRING")
  
  arg = post_data.split("&")
- namee = " = "
- commentt = " = "
+ secrete = " = "
+ emaill = " = "
  for i in range(len(arg)):
-     if "name" in arg[i]:
-         namee = arg[i]
-     if "comment" in arg[i]:
-         commentt = arg[i]
+     if "secret" in arg[i]:
+         secrete = arg[i]
+     if "email" in arg[i]:
+         emaill = arg[i]
          break
  
- email = namee.split("=")[1] if "=" in namee else "unknown"
- secret = commentt.split("=")[1] if "=" in commentt else "no"
+ email = emaill.split("=")[1] if "=" in emaill else "unknown"
+ secret = secrete.split("=")[1] if "=" in secrete else "no"
  
  print("Content-Type: text/plain\n")  # En-tête HTTP
  print("Données reçues:")

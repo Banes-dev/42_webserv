@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+ <html lang="fr">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>Webserv</title>
+     </head>
+     <body>
+         <p><strong><font size="+10"><center>Televerser</center></font></strong></p>
+         <form method="POST" enctype="multipart/form-data">
+             <div>
+                 <label for="file">Sélectionner le fichier a envoyer</label>
+                 <input 
+                     type="file" 
+                     id="file" 
+                     name="file"
+                     accept="".jpg, .jpeg, .png />
+             </div>
+             <div class="preview">
+                 <p>Aucun fichier séléctionné pour le moment</p>
+             </div>
+             <div>
+                 <button>Envoyer</button>
+             </div>
+         </form>
+     </body>
+ </html>
