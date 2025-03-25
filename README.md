@@ -1,9 +1,10 @@
 # 42_webserv
 
 Todo :
-- Recuperer fin de CGI pour envoyer en reponse
-- Bonus avec session de connection en cookies
+- Delete hello.py apres lecture
+- Corriger world.py et televerser.py
 
 
 
+- Tester qui fonctionne (modifier tester.conf)
 - Check si projet est ok avec le sujet

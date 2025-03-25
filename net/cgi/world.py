@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
  import os
  import sys
  
@@ -26,10 +26,11 @@
  email = emaill.split("=")[1] if "=" in emaill else "unknown"
  secret = secrete.split("=")[1] if "=" in secrete else "no"
  
- print("Content-Type: text/plain\n")  # En-tête HTTP
- print("Données reçues:")
- print(post_data)  # Afficher les données reçues
+#  print("Content-Type: text/plain\n")  # En-tête HTTP
+#  print("Données reçues:")
+#  print(post_data)  # Afficher les données reçues
  
+ print("HTTP/1.1 200 OK")
  print ("Content-type:text/html; charset=UTF-8")
  print ()
  a = f"""

@@ -9,7 +9,7 @@
      return None
  
  # Définir le répertoire où les fichiers seront enregistrés
- UPLOAD_DIR = "/net/cd/data/picture"
+ UPLOAD_DIR = "/net/cgi/data/picture"
  os.makedirs(UPLOAD_DIR, exist_ok=True)
  
  # Lire le contenu du fichier envoyé
