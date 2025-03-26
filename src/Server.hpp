@@ -8,6 +8,7 @@
 #include <vector> 		// vector
 #include <list> 		// list
 #include <map> 			// map
+#include <set> 			// set
 #include <algorithm> 	// algo
 #include <unistd.h>		// close etc
 #include <sys/socket.h> // socket
@@ -27,7 +28,7 @@
 
 
 #define MAX_EVENTS 100
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 400096
 
 class Server
 {

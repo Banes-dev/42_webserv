@@ -25,6 +25,7 @@ class HttpRequest
 		// Other function
         void ParseRequest(std::string buffer);
 
+		std::string decodeChunkedBody(const std::string &body);
 		const std::string GetMethod(void);
 		const std::string GetPath(void);
 		const std::string GetVersion(void);

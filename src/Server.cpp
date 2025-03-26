@@ -52,7 +52,6 @@ bool HasPyExtension(const std::string &url, const std::string &ext)
     }
     return (false);
 }
-
 bool running = true;
 void handle_signal(int signal)
 {
@@ -206,149 +205,160 @@ void Server::ManageConnection(void)
                     close(event_fd);
                 }
 				else {
-                    // Get config info for the socket
-                    std::string bodymax;
-                    std::string error404;
-                    std::string error500;
-                    std::list<std::map<std::string, std::string> > locations;
-                    std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
-                    if (map_it != _serv_info.end())
+                    static std::map<int, std::string> client_buffers;
+                    client_buffers[event_fd] += std::string(buffer, valread);
+
+                    std::string &full_request = client_buffers[event_fd];
+                    size_t request_end_pos = full_request.find("\r\n\r\n");
+
+                    if (request_end_pos != std::string::npos)
                     {
-                        std::multimap<std::string, std::vector<std::string> > mmap = map_it->second;
-
-                        locations = ConfParsing::getLocation(mmap);
-
-                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_bodymax = mmap.find("body-max");
-                        if (it_bodymax != mmap.end())
-                            bodymax = it_bodymax->second[0];
-                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_error404 = mmap.find("error_page404");
-                        if (it_error404 != mmap.end())
-                            error404 = it_error404->second[0];
-                        std::multimap<std::string, std::vector<std::string> >::const_iterator it_error500 = mmap.find("error_page500");
-                        if (it_error500 != mmap.end())
-                            error500 = it_error500->second[0];
-                    }
-
-                    // Limit body size
-                    static std::map<int, int> clientBodySize;
-                    clientBodySize[event_fd] += valread;
-                    std::istringstream iss(bodymax);
-                    int result = 0;
-                    iss >> result;
-                    if (clientBodySize[event_fd] > result)
-                    {
-                        std::cout << Red << Server::GetTime() << " " << "Body too large from client " << event_fd << Reset_Color << std::endl;
-
-                        HttpResponse response;
-                        response.SetStatus(413);
-                        response.SetKeepAlive(false);
-                        std::string responseStr = response.ToString();
-                        send(event_fd, responseStr.c_str(), responseStr.size(), 0);
-
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        close(event_fd);
-                        clientBodySize.erase(event_fd);
-                    }
-
-                    // Parsing Http request
-                    HttpRequest request;
-                    try {
-                        request.ParseRequest(buffer);
-                    } catch (std::exception &e) {
-                        std::cerr << e.what() << std::endl;
-                        close(event_fd);
-                        continue;
-                    }
-
-                    // Check path for choice the location
-                    std::string path = request.GetPath();
-                    std::string parse_path;
-                    if (path == "/")
-                        parse_path = "/";
-                    else
-                    {
-                        std::size_t pos = path.find('/', 1);
-                        parse_path = path.substr(0, pos + 1);
-                    }
-                    std::map<std::string, std::string> selected_location;
-                    for (std::list<std::map<std::string, std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
-                    {
-                        if (!it_locations->empty())
+                        // Get config info for the socket
+                        std::string bodymax;
+                        std::string error404;
+                        std::string error500;
+                        std::list<std::map<std::string, std::string> > locations;
+                        std::map<int, std::multimap<std::string, std::vector<std::string> > >::const_iterator map_it = _serv_info.find(event_fd);
+                        if (map_it != _serv_info.end())
                         {
-                            std::map<std::string, std::string>::const_iterator it_location = it_locations->find("location");
-                            if (it_location != it_locations->end() && trim(it_location->second) == parse_path.c_str())
-                            {
-                                for (std::map<std::string, std::string>::const_iterator it_map = it_locations->begin(); it_map != it_locations->end(); ++it_map)
-                                    selected_location = *it_locations;
-                                    // std::cout << it_map->first << ": " << it_map->second << std::endl;
-                                break;
-                            }
+                            std::multimap<std::string, std::vector<std::string> > mmap = map_it->second;
+
+                            locations = ConfParsing::getLocation(mmap);
+
+                            std::multimap<std::string, std::vector<std::string> >::const_iterator it_bodymax = mmap.find("body-max");
+                            if (it_bodymax != mmap.end())
+                                bodymax = it_bodymax->second[0];
+                            std::multimap<std::string, std::vector<std::string> >::const_iterator it_error404 = mmap.find("error_page404");
+                            if (it_error404 != mmap.end())
+                                error404 = it_error404->second[0];
+                            std::multimap<std::string, std::vector<std::string> >::const_iterator it_error500 = mmap.find("error_page500");
+                            if (it_error500 != mmap.end())
+                                error500 = it_error500->second[0];
                         }
-                    }
 
-                    // Check if method is ok
-                    if (selected_location["allow_methods"] != "GET POST DELETE")
-                    {
-                        if (selected_location["allow_methods"] == "GET POST" && request.GetMethod() == "DELETE")
+                        // Limit body size
+                        static std::map<int, int> clientBodySize;
+                        clientBodySize[event_fd] += valread;
+                        std::istringstream iss(bodymax);
+                        int result = 0;
+                        iss >> result;
+                        if (clientBodySize[event_fd] > result)
                         {
+                            std::cout << Red << Server::GetTime() << " " << "Body too large from client " << event_fd << Reset_Color << std::endl;
+
+                            HttpResponse response;
+                            response.SetStatus(413);
+                            response.SetKeepAlive(false);
+                            std::string responseStr = response.ToString();
+                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+
+                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                             close(event_fd);
-                            continue; 
+                            clientBodySize.erase(event_fd);
                         }
-                        if (selected_location["allow_methods"] == "GET DELETE" && request.GetMethod() == "POST")
-                        {
-                            close(event_fd);
-                            continue; 
-                        }
-                        if (selected_location["allow_methods"] == "POST DELETE" && request.GetMethod() == "GET")
-                        {
-                            close(event_fd);
-                            continue; 
-                        }
-                    }
 
-                    // Check si keep-alive est dans les headers
-                    const std::map<std::string, std::string> &headers = request.GetHeaders();
-                    bool keep_alive = false;
-                    std::map<std::string, std::string>::const_iterator it = headers.find("Connection");  
-                    if (it != headers.end() && it->second == "keep-alive")
-                        keep_alive = true;
-
-                    std::string responseStr;
-                    // Cgi exec
-                    if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
-                    {
-                        CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                        // CgiExecution abc(request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                        abc.methodeType(path);
-                        responseStr = abc.getResponseCgi();
-                    }
-                    else
-                    {
-                        // Http response
-                        HttpResponse response;
+                        // Parsing Http request
+                        HttpRequest request;
                         try {
-                            if (path[path.size() - 1] == '/')
-                                path += selected_location["index"];
-                            response.ServeFile(selected_location["root"], path, error404, error500);
-                            if (keep_alive == true)
-                                response.SetKeepAlive(true);
-                            else
-                                response.SetKeepAlive(false);
-                            response.SetCookieSession(request);
+                            request.ParseRequest(full_request);
                         } catch (std::exception &e) {
                             std::cerr << e.what() << std::endl;
                             close(event_fd);
+                            continue;
                         }
-                        responseStr = response.ToString();
-                    }
+                        client_buffers[event_fd].clear();
 
-                    send(event_fd, responseStr.c_str(), responseStr.size(), 0);
-                    if (keep_alive == false)
-                    {
-                        std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                        close(event_fd);
+                        // Check path for choice the location
+                        std::string path = request.GetPath();
+                        std::string parse_path;
+                        if (path == "/")
+                            parse_path = "/";
+                        else
+                        {
+                            std::size_t pos = path.find('/', 1);
+                            parse_path = path.substr(0, pos + 1);
+                            if (pos == std::string::npos)
+                                parse_path = path;
+                            else
+                                parse_path = path.substr(0, pos + 1);
+                        }
+                        std::map<std::string, std::string> selected_location;
+                        for (std::list<std::map<std::string, std::string> >::const_iterator it_locations = locations.begin(); it_locations != locations.end(); ++it_locations)
+                        {
+                            if (!it_locations->empty())
+                            {
+                                std::map<std::string, std::string>::const_iterator it_location = it_locations->find("location");
+                                if (it_location != it_locations->end() && trim(it_location->second) == parse_path.c_str())
+                                {
+                                    for (std::map<std::string, std::string>::const_iterator it_map = it_locations->begin(); it_map != it_locations->end(); ++it_map)
+                                        selected_location = *it_locations;
+                                        // std::cout << it_map->first << ": " << it_map->second << std::endl;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Check si keep-alive est dans les headers
+                        const std::map<std::string, std::string> &headers = request.GetHeaders();
+                        bool keep_alive = false;
+                        std::map<std::string, std::string>::const_iterator it = headers.find("Connection");  
+                        if (it != headers.end() && it->second == "keep-alive")
+                            keep_alive = true;
+
+                        std::string responseStr;
+                        // Check if method is ok
+                        std::set<std::string> allowed_methods;
+                        std::istringstream methods_stream(selected_location["allow_methods"]);
+                        std::string method;
+                        while (methods_stream >> method)
+                            allowed_methods.insert(method);
+                        if (allowed_methods.find(request.GetMethod()) == allowed_methods.end()) {
+                            HttpResponse response;
+                            response.SetStatus(405);
+                            response.SetHeader("Allow", selected_location["allow_methods"]);
+                            std::string responseStr = response.ToString();
+                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                            close(event_fd);
+                            continue;
+                        }
+
+                        // Cgi exec
+                        if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
+                        {
+                            CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                            abc.methodeType(path);
+                            responseStr = abc.getResponseCgi();
+                        }
+                        else
+                        {
+                            // Http response
+                            HttpResponse response;
+                            try {
+                                if (path[path.size() - 1] == '/')
+                                    path += selected_location["index"];
+                                response.ServeFile(selected_location["root"], path, error404, error500);
+                                if (keep_alive == true)
+                                    response.SetKeepAlive(true);
+                                else
+                                    response.SetKeepAlive(false);
+                                response.SetCookieSession(request);
+                            } catch (std::exception &e) {
+                                std::cerr << e.what() << std::endl;
+                                close(event_fd);
+                            }
+                            responseStr = response.ToString();
+                        }
+
+                        send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                        if (keep_alive == false)
+                        {
+                            std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
+                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                            close(event_fd);
+                        }
                     }
+                    else
+                        continue;
                 }
             }
         }
