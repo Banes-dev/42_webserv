@@ -22,26 +22,31 @@
 
 class CgiExecution
 {
+	private:
+        std::string _roothtml;
+        std::string _defaut;
+        std::string _pythonPath;
+        std::string _realPath;
+        std::string _method;
+        std::string _path;
+        std::string _body;
+        std::string _version;
+        std::string _responseCgi;
+        std::map<std::string, std::string> const &_header;
     public:
-        CgiExecution(std::string const & method, std::string const  & path, std::string const & body, std::string const & version, std::map<std::string, std::string> const & header);
-        CgiExecution(CgiExecution const & src);
+        CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header);
+        CgiExecution(const CgiExecution &src);
+		CgiExecution &operator=(const CgiExecution &copy);
         ~CgiExecution(void);
 
-        CgiExecution &      operator=(CgiExecution const & rhs);
-        void                methodeType();
-        void                parsQueryString(std::string & str);
-        void                parsBody(std::string & str);
-        void                executeCgi(char **envp);
-        void                functionDelete();
-
-    private:
-        std::string     _env;
-        std::string     _realPath;
-        std::string     _method;
-        std::string     _path;
-        std::string     _body;
-        std::string     _version;
-        std::map<std::string, std::string> const &   _header;
+		// Other function
+        void methodeType(std::string &path);
+        void parsQueryString(std::string &str);
+        void parsBody(std::string &str);
+        void executeCgi(char **envp, std::string &path);
+        void functionDelete(void);
+        std::string getResponseCgi(void) const;
+        std::string      ft_script_path(std::string env);
 };
 
 void        ft_fre(char **str);

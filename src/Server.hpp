@@ -4,6 +4,9 @@
 #include <iomanip> 		// std::setw, std::setfill
 #include <fstream>		// file gestion
 #include <sstream>		// text gestion
+#include <string>		// stoi()
+#include <vector> 		// vector
+#include <list> 		// list
 #include <map> 			// map
 #include <algorithm> 	// algo
 #include <unistd.h>		// close etc
@@ -16,23 +19,21 @@
 #include <arpa/inet.h>
 #include <ctime> 		// time
 
+#include "ConfParsing.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "Utils.hpp"
 #include "CgiExecution.hpp"
-#include <stdio.h>
-#include <stdlib.h>
+#include "Utils.hpp"
 
 
-
-#define PORT 8080
 #define MAX_EVENTS 100
 #define BUFFER_SIZE 4096
 
 class Server
 {
 	private:
-		int server_fd;
+		std::vector<int> _server_fds;
+		std::map<int, std::multimap< std::string, std::vector<std::string> > > _serv_info;
 		int epoll_fd;
 		struct sockaddr_in address;
 		socklen_t addrlen;
@@ -44,12 +45,9 @@ class Server
 		Server &operator=(const Server &copy);
 		~Server();
 
-		// std::map<int, time_t> _client_last_active;
-
 		// Other function
-        void ParseConfigurationFile(std::string arg); 	// Lire le fichier et mettre les infos dans les private du server
-        void InitSocket(void);                			// Initialiser les sockets pour chaque server et les mettres en ecoute
-        void ManageConnection();          			// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
+        void InitSocket(const std::list< std::multimap< std::string, std::vector<std::string> > > &conf);	// Initialiser les sockets pour chaque server et les mettres en ecoute
+        void ManageConnection(void);																		// Gerer les connections (plusieurs clients), differentes requetes http (get, post, etc ...), reponses http et CGI
 		static std::string GetTime(void);
 
 		// Exceptions
@@ -57,6 +55,12 @@ class Server
 			public:
 				virtual const char *what() const throw() {
 					return ("\033[0;31mSocket error\033[0m");
+				}
+		};
+		class SetsockoptException : public std::exception {
+			public:
+				virtual const char *what() const throw() {
+					return ("\033[0;31mSetsockopt error\033[0m");
 				}
 		};
 		class BindException : public std::exception {

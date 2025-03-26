@@ -1,22 +1,10 @@
 # 42_webserv
 
 Todo :
-- Parser le config file (utiliser les info du parse pour le serveur)
-- Parser la requete http du client
-- Renvoyer fichier static a la requete http
-- Mettre en place les CGI et les utiliser etc
+- Delete hello.py apres lecture
+- Corriger world.py et televerser.py
 
 
 
-- Check si socket et connection faite sont ok avec le sujet
-
-Banes todo :
-- Fermer la connection seulement quand connection: close dans le header et renvoyer dans la reponse http connection: keep-alive ou connection: close
-
-televerser les fichiers
-page cgi
-requete get
-reponse
-autoindex off
-fragmenter defragmenter
-message 500 erreur cgi
+- Tester qui fonctionne (modifier tester.conf)
+- Check si projet est ok avec le sujet

@@ -35,6 +35,7 @@ void HttpResponse::SetStatus(const int code)
     messages[401] = "Unauthorized";
     messages[403] = "Forbidden";
     messages[404] = "Not Found";
+    messages[413] = "Request Entity Too Large";
     messages[500] = "Internal Server Error";
     messages[503] = "Service Unavailable";
     if (messages.find(code) != messages.end())
@@ -64,6 +65,47 @@ void HttpResponse::SetKeepAlive(const bool keepAlive)
         SetHeader("Connection", "close");
 }
 
+void initRandom() {
+    static bool initialized = false;
+    if (!initialized)
+    {
+        srand(time(0));
+        initialized = true;
+    }
+}
+std::string generateSessionId(void)
+{
+    initRandom();
+    std::ostringstream oss;
+    oss << "session_" << (rand() % 100000);
+    return (oss.str());
+}
+void HttpResponse::SetCookieSession(HttpRequest &request)
+{
+    std::map<std::string, std::string> headers = request.GetHeaders();
+    std::string session_id;
+    if (headers.find("Cookie") != headers.end())
+    {
+        std::string cookies = headers["Cookie"];
+        size_t pos = cookies.find("session_id=");
+        if (pos != std::string::npos)
+        {
+            session_id = cookies.substr(pos + 11);
+            size_t end = session_id.find(";");
+            if (end != std::string::npos)
+                session_id = session_id.substr(0, end);
+        }
+    }
+    // if (session_id.empty() || this->_session_map.find(session_id) == this->_session_map.end())
+    if (session_id.empty())
+    {
+        session_id = generateSessionId();
+        this->_session_map[session_id] = "UserData";
+    }
+    if (headers.find("Cookie") == headers.end())
+        SetHeader("Set-Cookie", "session_id=" + session_id + "; Path=/; HttpOnly");
+}
+
 bool FileExists(const std::string &filename)
 {
     struct stat buffer;
@@ -84,24 +126,37 @@ std::string GetMimeType(const std::string &filePath)
     if (ext == ".svg") return "image/svg+xml";
     return "application/octet-stream";
 }
-void HttpResponse::ServeFile(const std::string &filePath)
+void HttpResponse::ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500)
 {
-    std::string fullPath = "net" + filePath;
+    std::string fullPath = root + file_path;
 
     if (!FileExists(fullPath))
     {
+        fullPath = error404;
+        std::ifstream file(fullPath.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
         SetStatus(404);
-        fullPath = "net/static/404.html";
+        SetBody(buffer.str());
+        SetHeader("Content-Type", GetMimeType(fullPath));
+        return;
     }
 
     std::ifstream file(fullPath.c_str(), std::ios::binary);
     if (!file.is_open())
     {
+        fullPath = error500;
+        file.open(fullPath.c_str(), std::ios::binary);
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
         SetStatus(500);
-        fullPath = "net/static/500.html";
-        // SetBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
-        // SetHeader("Content-Type", "text/html");
-        // return;
+        SetBody(buffer.str());
+        SetHeader("Content-Type", GetMimeType(fullPath));
+        return;
     }
 
     std::ostringstream buffer;
