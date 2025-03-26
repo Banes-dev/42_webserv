@@ -2,11 +2,11 @@
 
 
 // Constructor & Destructor
-CgiExecution::CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _roothtml(roothtml), _defaut(defaut), _pythonPath(pathPython), _env("!b"), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
+CgiExecution::CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _roothtml(roothtml), _defaut(defaut), _pythonPath(pathPython), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
 {
 }
 
-CgiExecution::CgiExecution(const CgiExecution &copy) : _roothtml(copy._roothtml), _defaut(copy._defaut), _pythonPath(copy._pythonPath), _env("!b"), _realPath(""), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _responseCgi(copy._responseCgi), _header(copy._header)
+CgiExecution::CgiExecution(const CgiExecution &copy) : _roothtml(copy._roothtml), _defaut(copy._defaut), _pythonPath(copy._pythonPath), _realPath(copy._realPath), _method(copy._method), _path(copy._path), _body(copy._body), _version(copy._version), _responseCgi(copy._responseCgi), _header(copy._header)
 {
     *this = copy;
 }
@@ -32,7 +32,6 @@ void CgiExecution::methodeType(std::string &path)
     if (envp == NULL)
         return;
     envp[11] = NULL;
-    // std::cout << std::endl;
     std::map<std::string, std::string>::const_iterator it3 = _header.find("Content-Length");
     if (it3 == _header.end())
         envp[0] = strdup("CONTENT_LENGTH=0");
@@ -61,15 +60,24 @@ void CgiExecution::methodeType(std::string &path)
         envp[5] = strdup(("SERVER_NAME=" + it->second).c_str());
     else
         envp[5] = strdup("SERVER_NAME=");
-    envp[6] = strdup("CONTENT_TYPE=");
+    std::map<std::string, std::string>::const_iterator itm = _header.find("Content-Type");
+    if (itm != _header.end())
+        envp[6] = strdup(("CONTENT_TYPE=" + itm->second).c_str());
+    else
+        envp[6] = strdup("CONTENT_TYPE=");
     envp[7] = strdup("SERVER_PORT=");
     envp[8] = strdup(("PATH_INFO=" + _pythonPath).c_str());
-    envp[9] = strdup("SCRIPT_NAME=");
+    envp[9] = strdup("");
+    std::map<std::string, std::string>::const_iterator itr = _header.find("Referer");
+    if (itr != _header.end())
+        envp[9] = strdup(("SCRIPT_NAME=" + itr->second).c_str());
+    else
+        envp[9] = strdup("SCRIPT_NAME=");
     envp[10] = strdup("REMOTE_ADDR=");
-    // std::cout << std::endl << "env2" << std::endl;
-    // for(int i = 0; envp[i] != NULL; i++)
-        // printf("%s\n", envp[i]);
-    // std::cout << std::endl;
+    std::cout << std::endl << Purple "env2 " << envp[9] << Reset_Color << std::endl;
+    for(int i = 0; envp[i] != NULL; i++)
+        printf("%s\n", envp[i]);
+    std::cout << std::endl;
     executeCgi(envp, path);
     ft_fre(envp);
 }
@@ -113,12 +121,12 @@ void CgiExecution::parsQueryString(std::string &str)
 {
     (void)str;
     // std::string _path = "sfgfgfs?name=guigui&comment=pars";
-    // std::cout << "cgiexecution" << " " << str << std::endl;
+    std::cout << "cgiexecution" << " " << str << std::endl;
     size_t t = str.find('?');
     if (t != std::string::npos && ++t != std::string::npos)
     {
         std::string path = str.substr(t);
-        // std::cout << Blue << path << Reset_Color << std::endl;
+        std::cout << Blue << path << Reset_Color << std::endl;
         _realPath = path;
     }
 }
@@ -126,14 +134,32 @@ void CgiExecution::parsQueryString(std::string &str)
 void CgiExecution::parsBody(std::string &str)
 {
     (void)str;
-    // std::cout << "cgiexecutionPost ";
-    // std::cout << Green << str << Reset_Color << std::endl;
-    // if (str.empty())
-    // {
-    //     write(1, "", 1);
-    //     return;
-    // }
-    // write(0, str.c_str(), str.size());
+    std::cout << "cgiexecutionPost ";
+    std::cout << Green << str << Reset_Color << std::endl;
+    if (str.empty())
+    {
+        write(1, "", 1);
+        return;
+    }
+     write(0, str.c_str(), str.size());
+}
+
+std::string       CgiExecution::ft_script_path(std::string env)
+{
+    if (env.empty())
+        return (NULL);
+    size_t  lastslash = env.find_last_of('/');
+    size_t  end = env.find_last_of('_');
+    std::string     temp = env.substr(lastslash + 1, end - lastslash - 1);
+    std::string     script = _defaut;
+    if (temp == "post")
+        script = "hello.py";
+    else if (temp == "t2")
+        script = "world.py";
+    else if (temp == "televerser")
+        script = "televerser.py";
+    std::string  path = _roothtml + '/' + script;
+    return (path);
 }
 
 void CgiExecution::executeCgi(char **envp, std::string &path)
@@ -151,17 +177,16 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
     }
     write(filefd, _body.c_str(), _body.size());
     close(filefd);
-
     if (pipe(pipe_fd) == -1)
     {
-        // printf("pipe :%s", strerror(errno));
+        printf("pipe :%s", strerror(errno));
         ft_fre(envp);
         return;
     }
     pid = fork();
     if (pid == -1)
     {
-        // printf("fork :%s", strerror(errno));
+        printf("fork :%s", strerror(errno));
         ft_fre(envp);
         return;
     }
@@ -183,23 +208,21 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
         close(pipe_fd[1]);
         char **tab;
         tab = (char **)malloc(2 * sizeof(char*));
-        tab[0] = ft_strdup("net/cgi/hello.py");
+        tab[0] = ft_strdup(ft_script_path(envp[9]).c_str());
         tab[1] = NULL;
         if (access(tab[0], X_OK) == -1)
         {
-            std::cerr << "Erreur d'accès à 'cgi/hello.py' : " << strerror(errno) << std::endl;
+            std::cerr << "Erreur d'accès à script cgi : " << strerror(errno) << std::endl;
             ft_fre(envp);
             return;
         }
-        execve("net/cgi/hello.py", tab, envp);
+        execve(tab[0], tab, envp);
         ft_fre(envp);
         ft_fre(tab);
         std::cout << "echec execute" << std::endl;
     }
     else
     {
-        // write(pipe_fd[1], _body.c_str(), _body.size());
-        // close(filefd);
         close(pipe_fd[1]);
         std::string     output_cgi = "";
         char            buf[10];
@@ -212,11 +235,15 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
         }
         if (!output_cgi.empty())
         {
-            // std::cout << "output_cgi " << std::endl << Red << output_cgi << Reset_Color << std::endl;
+            std::cout << "output_cgi " << std::endl << Red << output_cgi << Reset_Color << std::endl;
             _responseCgi = output_cgi;
         }
+        else
+            std::cout << Red << "output_cgi erreur " << std::endl << Reset_Color << std::endl;
         close(pipe_fd[0]);      
     }
+    if (_method == "POST")
+        unlink("hello.txt");
     wait(NULL);
 }
 

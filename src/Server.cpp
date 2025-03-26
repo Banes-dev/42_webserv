@@ -47,19 +47,11 @@ bool HasPyExtension(const std::string &url, const std::string &ext)
     size_t dotPos = filename.find_last_of('.');
     if (dotPos != std::string::npos)
     {
-        std::string extension = filename.substr(dotPos);
+        std::string extension = filename.substr(dotPos, 3);
         return (extension == ext);
     }
     return (false);
 }
-// bool HasPyExtension(const std::string &url, const std::string &ext)
-// {
-//     (void)ext;
-//     size_t lastSlashPos = url.find("CGI");
-//     if (lastSlashPos != std::string::npos)
-//         return (true);
-//     return(false);
-// }
 bool running = true;
 void handle_signal(int signal)
 {

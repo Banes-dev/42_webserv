@@ -26,7 +26,6 @@ class CgiExecution
         std::string _roothtml;
         std::string _defaut;
         std::string _pythonPath;
-        std::string _env;
         std::string _realPath;
         std::string _method;
         std::string _path;
@@ -47,6 +46,7 @@ class CgiExecution
         void executeCgi(char **envp, std::string &path);
         void functionDelete(void);
         std::string getResponseCgi(void) const;
+        std::string      ft_script_path(std::string env);
 };
 
 void        ft_fre(char **str);

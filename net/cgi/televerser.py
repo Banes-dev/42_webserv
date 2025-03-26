@@ -1,59 +1,63 @@
 #!/usr/bin/python3
- import os
- import sys
- 
- def read_multipart():
-     content_length = int(os.environ.get("CONTENT_LENGTH", 0))
-     if content_length > 0:
-         return sys.stdin.buffer.read(content_length)
-     return None
- 
- # Définir le répertoire où les fichiers seront enregistrés
- UPLOAD_DIR = "/net/cgi/data/picture"
- os.makedirs(UPLOAD_DIR, exist_ok=True)
- 
- # Lire le contenu du fichier envoyé
- data = read_multipart()
- 
- if data:
-     limit = data.split(b"\r\n")[0]
-     parts = data.split(limit)[1:-1]  # Ignorer la première et dernière partie
-     
-     for part in parts:
-         headers, file_content = part.split(b"\r\n\r\n", 1) # separe les entetes du contenu du fichier
-         headers = headers.decode()
-         if "filename=\"" in headers:
-             filename = headers.split("filename=\"")[1].split("\"")[0] # extrait le nom du fichier
-             filename = os.path.basename(filename)  # Sécuriser le nom du fichier
-             file_path = os.path.join(UPLOAD_DIR, filename)
-             
-             with open(file_path, "wb") as f:
-                 f.write(file_content.rsplit(b"\r\n", 1)[0])  #ecrit et Supprime le dernier retour à la ligne
-             
-             print("Content-Type: text/html\n")
-             print("<html><body>")
-             print(f"<p>Fichier <strong>{filename}</strong> téléversé avec succès!</p>")
-             print("</body></html>")
-             break
- else:
-     print("Content-Type: text/html\n")
-     print("<html><body><p>Aucun fichier reçu.</p></body></html>")
- 
- # Suppression d'un fichier si un paramètre 'delete' est passé
- def delete_file():
-     query_string = os.environ.get("QUERY_STRING", "")
-     if query_string.startswith("delete="):
-         filename = os.path.basename(query_string.split("=", 1)[1]) # securisation du chemin
-         file_path = os.path.join(UPLOAD_DIR, filename)
-         if os.path.exists(file_path):
-             os.remove(file_path)
-             print("Content-Type: text/html\n")
-             print("<html><body>")
-             print(f"<p>Fichier <strong>{filename}</strong> supprimé avec succès!</p>")
-             print("</body></html>")
-         else:
-             print("Content-Type: text/html\n")
-             print("<html><body><p>Fichier introuvable.</p></body></html>")
- 
- if "QUERY_STRING" in os.environ and "delete=" in os.environ["QUERY_STRING"]:
-     delete_file()
+import os
+import sys
+
+# 📂 Répertoire où stocker l'image
+UPLOAD_DIR = "/net/picture"
+
+# 📏 Lire la taille des données envoyées
+try:
+    content_length = int(os.environ.get("CONTENT_LENGTH", "0"))
+except ValueError:
+    content_length = 0
+
+limit = os.environ.get("CONTENT_TYPE")
+debut = limit.split("=")
+util = debut[1]
+# 📥 Lire les données brutes de STDIN
+data = sys.stdin.buffer.read(content_length)
+
+# 🔍 Vérifier si les données sont valides
+if not data or b"Content-Disposition" not in data:
+    print("Content-Type: text/html\n")
+    print("<html><body><p>Erreur: Aucun fichier reçu.</p></body></html>")
+    sys.exit(1)
+
+# 📌 Détecter le boundary
+print(data)
+test = data.split(b"\n")
+print(test[4]) #ok
+lines = data.split(b"\r\n")
+hello = test[4] + test[5]
+print(test[6])
+print(hello)
+# 🎯 Trouver le nom du fichier
+filename = None
+for line in lines:
+    if b'filename="' in line:
+        filename = line.split(b'filename="')[1].split(b'"')[0].decode()
+        filename = os.path.basename(filename)  # Sécuriser
+        break
+
+if not filename:
+    print("Content-Type: text/html\n")
+    print("<html><body><p>Erreur: Aucun nom de fichier trouvé.</p></body></html>")
+    sys.exit(1)
+
+#filepath = os.path.join(UPLOAD_DIR, filename)
+filepath = "/home/gschwart/webserv/42_webserv/net/picture/9008217_orig.png"
+
+print(filepath)
+#with open(filepath, "wb") as f:
+#    f.write(hello)  # Enlever le dernier saut de ligne
+string = r"b'\x89PNG\r\n\x1a'"
+with open(filepath,"wb") as file:
+  file.write(eval(string))
+
+# ✅ Réponse de succès
+print("Content-Type: text/html\n")
+print()
+print("<html><body>")
+print(f"<p>Fichier <strong>{filename}</strong> téléversé avec succès!</p>")
+print(f"<p>Stocké dans : {filepath}</p>")
+print("</body></html>")
