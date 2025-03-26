@@ -49,7 +49,7 @@ void HttpRequest::ParseRequest(std::string buffer)
     // std::cout << method << " " << path << " " << version << std::endl;
     if (method.empty() || path.empty() || version.empty())
         throw HttpRequestLineException();
-    if (method != "GET" && method != "POST" && method != "DELETE")
+    if (method != "GET" && method != "POST" && method != "DELETE" && method != "HEAD")
         throw MethodException();
     if (version != "HTTP/1.1")
         throw HttpVersionException();
@@ -59,17 +59,21 @@ void HttpRequest::ParseRequest(std::string buffer)
 
     // 2. Parse headers
     std::string header_line;
+    bool isChunked = false;
     while (std::getline(ss, header_line))
     {
         trim(header_line);
         if (header_line.empty())
             break;
         size_t slipt_pos = header_line.find(": ");
+        // std::cout << slipt_pos << " " << std::string::npos << std::endl;
         if (slipt_pos != std::string::npos)
         {
             std::string key = header_line.substr(0, slipt_pos);
             std::string value = header_line.substr(slipt_pos + 2);
             this->_headers[key] = value;
+            if (key == "Transfer-Encoding" && value == "chunked")
+                isChunked = true;
             // std::cout << "Header: " << key << ": " << value << std::endl;
         }
         else
@@ -81,13 +85,37 @@ void HttpRequest::ParseRequest(std::string buffer)
     char c;
     while (ss.get(c))
         body_content.push_back(c);
-    if (!body_content.empty())
-    {
+    if (isChunked)
+        this->_body = decodeChunkedBody(body_content);
+    else if (!body_content.empty())
         this->_body = body_content;
-        // std::cout << "Body: " << this->_body << std::endl;
-    }
 
     std::cout << Purple << Server::GetTime() << " " << this->_method << " " << this->_path << " " << this->_version << Reset_Color << std::endl;
+}
+
+std::string HttpRequest::decodeChunkedBody(const std::string &body)
+{
+    std::istringstream stream(body);
+    std::string decodedBody;
+    std::string chunkSizeStr;
+    size_t chunkSize = 0;
+
+    while (std::getline(stream, chunkSizeStr))
+    {
+        trim(chunkSizeStr);
+        chunkSize = std::strtol(chunkSizeStr.c_str(), NULL, 16);
+        if (chunkSize == 0)
+            break;
+
+        char *chunkData = new char[chunkSize + 1];
+        stream.read(chunkData, chunkSize);
+        decodedBody.append(chunkData, chunkSize);
+        delete[] chunkData;
+
+        // Passer le CRLF après le chunk
+        stream.ignore(2);
+    }
+    return decodedBody;
 }
 
 const std::string HttpRequest::GetMethod(void)
