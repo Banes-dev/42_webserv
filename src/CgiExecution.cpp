@@ -135,7 +135,7 @@ void CgiExecution::parsBody(std::string &str)
 {
     (void)str;
     std::cout << "cgiexecutionPost ";
-    std::cout << Green << str << Reset_Color << std::endl;
+//    std::cout << Green << str << Reset_Color << std::endl;
     if (str.empty())
     {
         write(1, "", 1);
