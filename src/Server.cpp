@@ -276,9 +276,13 @@ void Server::ManageConnection(void)
                         else
                         {
                             std::size_t pos = path.find('/', 1);
-                            parse_path = path.substr(0, pos + 1);
+                            // parse_path = path.substr(0, pos + 1);
+                            // if (pos == std::string::npos)
+                            //     parse_path = path;
+                            // else
+                            //     parse_path = path.substr(0, pos + 1);
                             if (pos == std::string::npos)
-                                parse_path = path;
+                                parse_path = path + "/";
                             else
                                 parse_path = path.substr(0, pos + 1);
                         }
@@ -297,6 +301,32 @@ void Server::ManageConnection(void)
                                 }
                             }
                         }
+                    if (!selected_location.empty())
+                    {
+                        if (path.length() != parse_path.length() - 1)
+                        {
+                            std::string file = path.substr(parse_path.length());
+                            if (!file.empty())
+                                path = selected_location["root"] + file;
+                        }
+                        else
+                        {
+                            std::map<std::string, std::string>::const_iterator it_root = selected_location.find("root");
+                            std::map<std::string, std::string>::const_iterator it_default = selected_location.find("index");
+
+                            if (it_root != selected_location.end() && it_default != selected_location.end()) {
+                                path = it_root->second + it_default->second;
+                            }
+                        }
+                        // std::map<std::string, std::string>::const_iterator it_root = selected_location.find("root");
+                        // std::map<std::string, std::string>::const_iterator it_default = selected_location.find("index");
+
+                        // if (it_root != selected_location.end() && it_default != selected_location.end())
+                        // {
+                        //     if (path == parse_path || path == parse_path.substr(0, parse_path.size() - 1))
+                        //         path = it_root->second + it_default->second;
+                        // }
+                    }
 
                         // Check si keep-alive est dans les headers
                         const std::map<std::string, std::string> &headers = request.GetHeaders();
@@ -334,9 +364,10 @@ void Server::ManageConnection(void)
                             // Http response
                             HttpResponse response;
                             try {
-                                if (path[path.size() - 1] == '/')
-                                    path += selected_location["index"];
-                                response.ServeFile(selected_location["root"], path, error404, error500);
+                                std::cout << path << " " << selected_location["root"] << " " << selected_location["index"] << std::endl;
+                                // if (path[path.size() - 1] == '/')
+                                //     path += selected_location["index"]; 
+                                response.ServeFile(selected_location["root"], path, error404, error500); // path
                                 if (keep_alive == true)
                                     response.SetKeepAlive(true);
                                 else
