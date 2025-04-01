@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 import os
 import sys
+import re
 
-# 📂 Répertoire de stockage des fichiers
-UPLOAD_DIR = "/home/gschwart/webserv/42_webserv/net/picture"
+# 📂 Répertoire où stocker l'image
+pwd = os.getcwd()
+UPLOAD_DIR = pwd + "/net/picture"
 
 # 📏 Lire la taille des données envoyées
 try:
@@ -11,70 +13,60 @@ try:
 except ValueError:
     content_length = 0
 
-# 📥 Lire les données brutes de STDIN
-data = sys.stdin.buffer.read(content_length)
-
-# 🔍 Vérifier si les données sont valides
-if not data or b"Content-Disposition" not in data:
+if content_length <= 0:
     print("Content-Type: text/html\n")
     print("<html><body><p>Erreur: Aucun fichier reçu.</p></body></html>")
     sys.exit(1)
 
-# 📌 Détecter le boundary
-lines = data.split(b"\r\n")
+# 📥 Lire les données de STDIN
+data = sys.stdin.buffer.read(content_length)
 
-# 🎯 Trouver le nom du fichier
-filename = None
-file_start_index = None
-for i, line in enumerate(lines):
-    if b'filename="' in line:
-        filename = line.split(b'filename="')[1].split(b'"')[0].decode()
-        filename = os.path.basename(filename)  # Sécuriser le nom du fichier
-        file_start_index = i + 2  # L'image commence après "Content-Type"
-        break
-
-if not filename or file_start_index is None:
+# 🔍 Détection du boundary
+boundary = re.search(rb"^--(.+)", data)
+if not boundary:
     print("Content-Type: text/html\n")
-    print("<html><body><p>Erreur: Aucun nom de fichier trouvé.</p></body></html>")
+    print("<html><body><p>Erreur: Boundary introuvable.</p></body></html>")
     sys.exit(1)
 
-# 📌 Construire le chemin du fichier
-filepath = os.path.join(UPLOAD_DIR, filename)
+boundary = boundary.group(1)
 
-temp = data.split(b"\n")
-l = len(temp)
-i = 0
-zorro = b""
-for z in temp:
-    i += 1
-    print(i, "\n", z, "\n")
-    att = b""
-    wer = b""
-    if i > 4 and i < l - 1:
-        yeho = z.split(b"\n")
-        for li in yeho:
-            att += li
-        uoa = att.split(b"\r")
-        for oi in uoa:
-            wer += oi
-        zorro += wer
+# 🧐 Extraire les fichiers envoyés
+parts = data.split(b"--" + boundary)
+#print(data)
+#print()
+for part in parts:
+    if b"Content-Disposition" in part and b"filename=" in part:
+        # 📌 Extraire le nom du fichier
+        filename_match = re.search(rb'filename="([^"]+)"', part)
+        if not filename_match:
+            continue
+        filename = filename_match.group(1).decode()
+        filename = os.path.basename(filename)  # Éviter les problèmes de sécurité
 
-print(zorro)
+        # 📌 Trouver le début des données du fichier
+        file_data_start = part.find(b" \n \n") + 4
+#        print(file_data_start)
+        file_data = part[file_data_start:].rstrip(b"\r\n--")  # Enlever les boundary finaux
+#        print(file_data)
+        # 📥 Écriture dans le fichier
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        try:
+            with open(filepath, "wb") as f:
+                f.write(file_data)
+        except Exception as e:
+            print("Content-Type: text/html\n")
+            print(f"<html><body><p>Erreur lors de l'enregistrement du fichier: {str(e)}</p></body></html>")
+            sys.exit(1)
 
-# 📥 Extraire uniquement les données binaires de l'image
-file_data = b"\r\n".join(lines)  # Supprime la dernière ligne boundary
+        # ✅ Réponse de succès
+        print("Content-Type: text/html\n")
+        print("<html><body>")
+        print(f"<p>Fichier <strong>{filename}</strong> televerse avec succes!</p>")
+        print(f"<p>Stocke dans : {filepath}</p>")
+        print("</body></html>")
+        sys.exit(0)
 
-try:
-    with open(filepath, "wb") as f:
-        f.write(zorro)
-except Exception as e:
-    print("Content-Type: text/html\n")
-    print(f"<html><body><p>Erreur lors de l'enregistrement du fichier: {str(e)}</p></body></html>")
-    sys.exit(1)
-
-# ✅ Réponse de succès
+# ⚠️ Aucune donnée valide trouvée
 print("Content-Type: text/html\n")
-print("<html><body>")
-print(f"<p>Fichier <strong>{filename}</strong> televerser avec succes!</p>")
-print(f"<p>Stocké dans : {filepath}</p>")
-print("</body></html>")
+print("<html><body><p>Erreur: Aucun fichier valide trouve.</p></body></html>")
+sys.exit(1)
