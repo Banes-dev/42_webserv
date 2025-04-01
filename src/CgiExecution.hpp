@@ -16,8 +16,9 @@
 # include <sys/wait.h>
 # include <unistd.h>
 # include <string.h>
-# include "Utils.hpp"
 # include <fstream>
+
+# include "Utils.hpp"
 
 
 class CgiExecution
@@ -29,12 +30,12 @@ class CgiExecution
         std::string _realPath;
         std::string _method;
         std::string _path;
-        std::string _body;
+        std::vector<char> _body;
         std::string _version;
         std::string _responseCgi;
         std::map<std::string, std::string> const &_header;
     public:
-        CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header);
+        CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::vector<char> &body, const std::string &version, const std::map<std::string, std::string> &header);
         CgiExecution(const CgiExecution &src);
 		CgiExecution &operator=(const CgiExecution &copy);
         ~CgiExecution(void);
@@ -42,7 +43,7 @@ class CgiExecution
 		// Other function
         void methodeType(std::string &path);
         void parsQueryString(std::string &str);
-        void parsBody(std::string &str);
+        void parsBody(std::vector<char> &str);
         void executeCgi(char **envp, std::string &path);
         void functionDelete(void);
         std::string getResponseCgi(void) const;

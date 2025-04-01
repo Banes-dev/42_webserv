@@ -3,7 +3,7 @@
 
 
 // Constructor & Destructor
-HttpRequest::HttpRequest(void) : _method(""), _path(""), _version(""), _body("")
+HttpRequest::HttpRequest(void) : _method(""), _path(""), _version("")
 {
 }
 
@@ -81,7 +81,7 @@ void HttpRequest::ParseRequest(std::string buffer)
     }
 
     // 3. Get body
-    std::string body_content;
+    std::vector<char> body_content;
     char c;
     while (ss.get(c))
         body_content.push_back(c);
@@ -93,10 +93,10 @@ void HttpRequest::ParseRequest(std::string buffer)
     std::cout << Purple << Server::GetTime() << " " << this->_method << " " << this->_path << " " << this->_version << Reset_Color << std::endl;
 }
 
-std::string HttpRequest::decodeChunkedBody(const std::string &body)
+std::vector<char> HttpRequest::decodeChunkedBody(const std::vector<char> &body)
 {
-    std::istringstream stream(body);
-    std::string decodedBody;
+    std::istringstream stream(std::string(body.begin(), body.end()));
+    std::vector<char> decodedBody;
     std::string chunkSizeStr;
     size_t chunkSize = 0;
 
@@ -107,13 +107,13 @@ std::string HttpRequest::decodeChunkedBody(const std::string &body)
         if (chunkSize == 0)
             break;
 
-        char *chunkData = new char[chunkSize + 1];
-        stream.read(chunkData, chunkSize);
-        decodedBody.append(chunkData, chunkSize);
-        delete[] chunkData;
+        std::vector<char> chunkData(chunkSize); // Stocker les données du chunk
+        stream.read(chunkData.data(), chunkSize);
+        decodedBody.insert(decodedBody.end(), chunkData.begin(), chunkData.end());
 
-        // Passer le CRLF après le chunk
-        stream.ignore(2);
+        // Passer le CRLF après le chunk (vérification plus sûre)
+        if (stream.peek() == '\r') stream.get();
+        if (stream.peek() == '\n') stream.get();
     }
     return decodedBody;
 }
@@ -134,7 +134,7 @@ const std::map<std::string, std::string> &HttpRequest::GetHeaders(void)
 {
     return (this->_headers);
 }
-const std::string HttpRequest::GetBody(void)
+const std::vector<char> HttpRequest::GetBody(void)
 {
     return (this->_body);
 }

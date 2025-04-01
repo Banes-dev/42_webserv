@@ -3,6 +3,7 @@
 #include <iostream>  	// base
 #include <sstream>		// text gestion
 #include <map> 			// map
+#include <vector> 		// vector
 #include <algorithm> 	// algo
 
 #include "Utils.hpp"
@@ -15,7 +16,7 @@ class HttpRequest
 		std::string _path;
 		std::string _version;
 		std::map<std::string, std::string> _headers;
-		std::string _body;
+		std::vector<char> _body;
 	public:
 		HttpRequest();
 		HttpRequest(const HttpRequest &copy);
@@ -25,12 +26,12 @@ class HttpRequest
 		// Other function
         void ParseRequest(std::string buffer);
 
-		std::string decodeChunkedBody(const std::string &body);
+		std::vector<char> decodeChunkedBody(const std::vector<char> &body);
 		const std::string GetMethod(void);
 		const std::string GetPath(void);
 		const std::string GetVersion(void);
 		const std::map<std::string, std::string> &GetHeaders(void);
-		const std::string GetBody(void);
+		const std::vector<char> GetBody(void);
 
 		// Exceptions
 		class HttpRequestLineException : public std::exception {

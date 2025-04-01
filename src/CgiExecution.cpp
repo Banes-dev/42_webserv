@@ -2,7 +2,7 @@
 
 
 // Constructor & Destructor
-CgiExecution::CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::string &body, const std::string &version, const std::map<std::string, std::string> &header) : _roothtml(roothtml), _defaut(defaut), _pythonPath(pathPython), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
+CgiExecution::CgiExecution(const std::string &roothtml, const std::string &defaut, const std::string &pathPython, const std::string &method, const std::string &path, const std::vector<char> &body, const std::string &version, const std::map<std::string, std::string> &header) : _roothtml(roothtml), _defaut(defaut), _pythonPath(pathPython), _realPath(""), _method(method), _path(path), _body(body), _version(version), _responseCgi("unknow"), _header(header)
 {
 }
 
@@ -75,8 +75,8 @@ void CgiExecution::methodeType(std::string &path)
         envp[9] = strdup("SCRIPT_NAME=");
     envp[10] = strdup("REMOTE_ADDR=");
     std::cout << std::endl << Purple "env2 " << envp[9] << Reset_Color << std::endl;
-    for(int i = 0; envp[i] != NULL; i++)
-        printf("%s\n", envp[i]);
+    // for(int i = 0; envp[i] != NULL; i++)
+    //     printf("%s\n", envp[i]);
     std::cout << std::endl;
     executeCgi(envp, path);
     ft_fre(envp);
@@ -131,17 +131,17 @@ void CgiExecution::parsQueryString(std::string &str)
     }
 }
 
-void CgiExecution::parsBody(std::string &str)
+void CgiExecution::parsBody(std::vector<char> &str)
 {
     (void)str;
-    std::cout << "cgiexecutionPost ";
-    std::cout << Green << str << Reset_Color << std::endl;
+    // std::cout << "cgiexecutionPost ";
+    // std::cout << Green << str << Reset_Color << std::endl;
     if (str.empty())
     {
         write(1, "", 1);
         return;
     }
-     write(0, str.c_str(), str.size());
+    // write(0, str.c_str(), str.size());
 }
 
 std::string       CgiExecution::ft_script_path(std::string env)
@@ -165,26 +165,27 @@ std::string       CgiExecution::ft_script_path(std::string env)
 void CgiExecution::executeCgi(char **envp, std::string &path)
 {
     int pipe_fd[2];
+    int pipe_in[2];
     pid_t pid;
-    int filefd;
+    // int filefd;
 
     (void)path;
-    filefd = open("hello.txt", O_RDWR | O_TRUNC | O_CREAT, 0644);
-    if (filefd == -1)
-    {
-        std::cout << std::endl << "erreur" << std::endl;
-        return;
-    }
-    write(filefd, _body.c_str(), _body.size());
-    close(filefd);
-    if (pipe(pipe_fd) == -1)
+    // filefd = open("hello.txt", O_RDWR | O_TRUNC | O_CREAT, 0644);
+    // if (filefd == -1)
+    // {
+    //     std::cout << std::endl << "erreur" << std::endl;
+    //     return;
+    // }
+    // write(filefd, _body.c_str(), _body.size());
+    // close(filefd);
+    if (pipe(pipe_fd) == -1 || pipe(pipe_in) == -1)
     {
         printf("pipe :%s", strerror(errno));
         ft_fre(envp);
         return;
     }
     pid = fork();
-    if (pid == -1)
+    if (pid < 0)
     {
         printf("fork :%s", strerror(errno));
         ft_fre(envp);
@@ -192,18 +193,22 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
     }
     if (pid == 0)
     {
+        // close(pipe_fd[0]);
+        // if (_method == "POST")
+        // {
+        //     filefd = open("hello.txt", O_RDONLY);
+        //     if (filefd == -1)
+        //     {
+        //         std::cout << "erreur read hello.txt" << std::endl;
+        //         return;
+        //     }
+        //     dup2(filefd, STDIN_FILENO);
+        //     close(filefd);
+        // }
+        dup2(pipe_in[0], STDIN_FILENO);
+        close(pipe_in[0]);
+        close(pipe_in[1]);
         close(pipe_fd[0]);
-        if (_method == "POST")
-        {
-            filefd = open("hello.txt", O_RDONLY);
-            if (filefd == -1)
-            {
-                std::cout << "erreur read hello.txt" << std::endl;
-                return;
-            }
-            dup2(filefd, STDIN_FILENO);
-            close(filefd);
-        }
         dup2(pipe_fd[1], STDOUT_FILENO);
         close(pipe_fd[1]);
         char **tab;
@@ -223,7 +228,10 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
     }
     else
     {
+        close(pipe_in[0]);
         close(pipe_fd[1]);
+        write(pipe_in[1], _body.data(), _body.size());
+        close(pipe_in[1]);
         std::string     output_cgi = "";
         char            buf[10];
         ssize_t         bytes_read;
@@ -242,8 +250,8 @@ void CgiExecution::executeCgi(char **envp, std::string &path)
             std::cout << Red << "output_cgi erreur " << std::endl << Reset_Color << std::endl;
         close(pipe_fd[0]);      
     }
-    if (_method == "POST")
-        unlink("hello.txt");
+    // if (_method == "POST")
+    //     unlink("hello.txt");
     wait(NULL);
 }
 
