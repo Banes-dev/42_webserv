@@ -158,6 +158,8 @@ std::string       CgiExecution::ft_script_path(std::string env)
         script = "world.py";
     else if (temp == "televerser")
         script = "televerser.py";
+    else if (temp == "delete")
+        script = "delete.py";
     std::string  path = _roothtml + '/' + script;
     return (path);
 }

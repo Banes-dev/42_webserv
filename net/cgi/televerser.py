@@ -14,7 +14,8 @@ except ValueError:
     content_length = 0
 
 if content_length <= 0:
-    print("Content-Type: text/html\n")
+    print ("Content-type:text/html; charset=UTF-8")
+    print ()
     print("<html><body><p>Erreur: Aucun fichier reçu.</p></body></html>")
     sys.exit(1)
 
@@ -24,7 +25,8 @@ data = sys.stdin.buffer.read(content_length)
 # 🔍 Détection du boundary
 boundary = re.search(rb"^--(.+)", data)
 if not boundary:
-    print("Content-Type: text/html\n")
+    print ("Content-type:text/html; charset=UTF-8")
+    print ()
     print("<html><body><p>Erreur: Boundary introuvable.</p></body></html>")
     sys.exit(1)
 
@@ -46,20 +48,28 @@ for part in parts:
         # 📌 Trouver le début des données du fichier
         file_data_start = part.find(b" \n \n") + 4
 #        print(file_data_start)
-        file_data = part[file_data_start:].rstrip(b"\r\n--")  # Enlever les boundary finaux
+        file_data = part[file_data_start:].rstrip(b"\n--")  # Enlever les boundary finaux
 #        print(file_data)
+
         # 📥 Écriture dans le fichier
         filepath = os.path.join(UPLOAD_DIR, filename)
+
+        file_data = file_data.split(b" \n--")[0]
+#        print()
+#        print(file_data)
         try:
             with open(filepath, "wb") as f:
                 f.write(file_data)
         except Exception as e:
-            print("Content-Type: text/html\n")
+            print ("Content-type:text/html; charset=UTF-8")
+            print ()
             print(f"<html><body><p>Erreur lors de l'enregistrement du fichier: {str(e)}</p></body></html>")
             sys.exit(1)
 
         # ✅ Réponse de succès
-        print("Content-Type: text/html\n")
+        print("HTTP/1.1 200 OK")
+        print ("Content-type:text/html; charset=UTF-8")
+        print ()
         print("<html><body>")
         print(f"<p>Fichier <strong>{filename}</strong> televerse avec succes!</p>")
         print(f"<p>Stocke dans : {filepath}</p>")
@@ -67,6 +77,7 @@ for part in parts:
         sys.exit(0)
 
 # ⚠️ Aucune donnée valide trouvée
-print("Content-Type: text/html\n")
+print ("Content-type:text/html; charset=UTF-8")
+print ()
 print("<html><body><p>Erreur: Aucun fichier valide trouve.</p></body></html>")
 sys.exit(1)
