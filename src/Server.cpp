@@ -23,6 +23,11 @@ Server::~Server(void)
 
 
 // Other function
+bool hasBlaExtension(const std::string &filename)
+{
+    size_t pos = filename.rfind(".bla");
+    return (pos != std::string::npos) && (pos + 4 == filename.size());
+}
 std::string trim(std::string str)
 {
     size_t first = str.find_first_not_of(" \r\n\t");
@@ -303,11 +308,11 @@ void Server::ManageConnection(void)
                         std::string responseStr;
 
                         // Execute cgi tester when file.bla
-                        if (path.substr(path.find_last_of(".")) == ".bla")
+                        if (hasBlaExtension(path))
                         {
-                            CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                            abc.methodeType(path);
-                            responseStr = abc.getResponseCgi();
+                            // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                            // abc.methodeType(path);
+                            // responseStr = abc.getResponseCgi();
                         }
 
                         // Limit body size
