@@ -47,6 +47,8 @@ class CgiExecution
         void parsBody(std::vector<char> &str);
         void executeCgi(char **envp, std::string &path);
         void functionDelete(void);
+        void methodeType2(std::string &path);
+        void executeCgi2(char **envp, std::string &path);
         std::string getResponseCgi(void) const;
         std::string      ft_script_path(std::string env);
 };

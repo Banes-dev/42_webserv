@@ -308,11 +308,16 @@ void Server::ManageConnection(void)
                         std::string responseStr;
 
                         // Execute cgi tester when file.bla
-                        if (hasBlaExtension(path))
+                        if (hasBlaExtension(path) && request.GetMethod() == "POST")
                         {
-                            // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                            // abc.methodeType(path);
-                            // responseStr = abc.getResponseCgi();
+                            HttpResponse    response;
+//                            response.SetStatus(200);
+                            std::cout << "bla" << std::endl;
+                            CgiExecution abc("testers/", "ubuntu_cgi_tester", selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                            abc.methodeType2(path);
+                            responseStr = abc.getResponseCgi();
+                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                            continue;
                         }
 
                         // Limit body size
@@ -370,6 +375,7 @@ void Server::ManageConnection(void)
                         // Cgi exec
                         if (HasPyExtension(path, selected_location["cgi_extension"]) == true)
                         {
+                            std::cout << selected_location["root"] << " " << selected_location["index"] << std::endl;
                             CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
                             abc.methodeType(path);
                             responseStr = abc.getResponseCgi();
