@@ -31,6 +31,7 @@ void HttpResponse::SetStatus(const int code)
     messages[200] = "OK";
     messages[201] = "Created";
     messages[204] = "No Content";
+    messages[301] = "Moved Permanently";
     messages[400] = "Bad Request";
     messages[401] = "Unauthorized";
     messages[403] = "Forbidden";
@@ -109,8 +110,13 @@ void HttpResponse::SetCookieSession(HttpRequest &request)
 
 bool FileExists(const std::string &filename)
 {
-    struct stat buffer;
-    return (stat(filename.c_str(), &buffer) == 0);
+    // struct stat buffer;
+    // return (stat(filename.c_str(), &buffer) == 0);
+
+    struct stat s;
+    if (stat(filename.c_str(), &s) == 0)
+        return S_ISREG(s.st_mode);
+    return false;
 }
 std::string GetMimeType(const std::string &filePath)
 {
@@ -127,20 +133,43 @@ std::string GetMimeType(const std::string &filePath)
     if (ext == ".svg") return "image/svg+xml";
     return "application/octet-stream";
 }
-void HttpResponse::ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500)
+void HttpResponse::ServeFile(const std::string &file_path, const std::string &index, const std::string &error404, const std::string &error500)
 {
-    std::string fullPath = root + file_path;
-    std::cout << fullPath << std::endl;
+    std::string fullPath = file_path;
+    // std::cout << fullPath << std::endl;
+
+    struct stat s;
+    if (stat(fullPath.c_str(), &s) == 0 && S_ISDIR(s.st_mode))
+    {
+        std::string indexFile = fullPath + "/" + index;
+        if (stat(indexFile.c_str(), &s) == 0 && S_ISREG(s.st_mode))
+            fullPath = indexFile;
+        else
+        {
+            // std::cout << "0.5" << std::endl;
+            fullPath = error404;
+            std::ifstream file(fullPath.c_str(), std::ios::binary);
+            std::ostringstream buffer;
+            buffer << file.rdbuf();
+            file.close();
+
+            SetStatus(404);
+            SetBody(buffer.str());
+            SetHeader("Content-Type", GetMimeType(fullPath));
+            return;
+        }
+    }
 
     if (!FileExists(fullPath))
     {
+        // std::cout << "1" << std::endl;
         fullPath = error404;
         std::ifstream file(fullPath.c_str(), std::ios::binary);
         std::ostringstream buffer;
         buffer << file.rdbuf();
         file.close();
 
-        SetStatus(200);
+        SetStatus(404);
         SetBody(buffer.str());
         SetHeader("Content-Type", GetMimeType(fullPath));
         return;
@@ -149,6 +178,7 @@ void HttpResponse::ServeFile(const std::string &root, const std::string &file_pa
     std::ifstream file(fullPath.c_str(), std::ios::binary);
     if (!file.is_open())
     {
+        // std::cout << "2" << std::endl;
         fullPath = error500;
         file.open(fullPath.c_str(), std::ios::binary);
         std::ostringstream buffer;
@@ -160,6 +190,7 @@ void HttpResponse::ServeFile(const std::string &root, const std::string &file_pa
         SetHeader("Content-Type", GetMimeType(fullPath));
         return;
     }
+    // std::cout << "3" << std::endl;
 
     std::ostringstream buffer;
     buffer << file.rdbuf();

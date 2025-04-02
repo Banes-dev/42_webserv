@@ -35,7 +35,7 @@ class HttpResponse
 		void SetBody(const std::string &body);
 		void SetKeepAlive(const bool keepAlive);
 		void SetCookieSession(HttpRequest &request);
-		void ServeFile(const std::string &root, const std::string &file_path, const std::string &error404, const std::string &error500);
+		void ServeFile(const std::string &file_path, const std::string &index, const std::string &error404, const std::string &error500);
 		std::string ToString() const;
 
 		// Exceptions

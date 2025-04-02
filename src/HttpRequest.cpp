@@ -99,7 +99,7 @@ void HttpRequest::ParseRequest(std::string buffer)
 
 std::vector<char> HttpRequest::decodeChunkedBody(const std::vector<char> &body)
 {
-    std::istringstream stream(std::string(body.begin(), body.end())); // Créer un flux à partir des données
+    std::istringstream stream(std::string(body.begin(), body.end()));
     std::vector<char> decodedBody;
     std::string chunkSizeStr;
     size_t chunkSize = 0;

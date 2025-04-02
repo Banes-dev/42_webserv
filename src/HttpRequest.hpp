@@ -3,6 +3,7 @@
 #include <iostream>  	// base
 #include <sstream>		// text gestion
 #include <map> 			// map
+#include <vector> 		// vector
 #include <algorithm> 	// algo
 #include <vector>
 

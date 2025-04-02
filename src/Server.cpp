@@ -236,33 +236,13 @@ void Server::ManageConnection(void)
                                 error500 = it_error500->second[0];
                         }
 
-                        // Limit body size
-                        static std::map<int, int> clientBodySize;
-                        clientBodySize[event_fd] += valread;
-                        std::istringstream iss(bodymax);
-                        int result = 0;
-                        iss >> result;
-                        if (clientBodySize[event_fd] > result)
-                        {
-                            std::cout << Red << Server::GetTime() << " " << "Body too large from client " << event_fd << Reset_Color << std::endl;
-
-                            HttpResponse response;
-                            response.SetStatus(413);
-                            response.SetKeepAlive(false);
-                            std::string responseStr = response.ToString();
-                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
-
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                            close(event_fd);
-                            clientBodySize.erase(event_fd);
-                        }
-
                         // Parsing Http request
                         HttpRequest request;
                         try {
                             request.ParseRequest(full_request);
                         } catch (std::exception &e) {
                             std::cerr << e.what() << std::endl;
+                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                             close(event_fd);
                             continue;
                         }
@@ -276,9 +256,13 @@ void Server::ManageConnection(void)
                         else
                         {
                             std::size_t pos = path.find('/', 1);
-                            parse_path = path.substr(0, pos + 1);
+                            // parse_path = path.substr(0, pos + 1);
+                            // if (pos == std::string::npos)
+                            //     parse_path = path;
+                            // else
+                            //     parse_path = path.substr(0, pos + 1);
                             if (pos == std::string::npos)
-                                parse_path = path;
+                                parse_path = path + "/";
                             else
                                 parse_path = path.substr(0, pos + 1);
                         }
@@ -297,6 +281,55 @@ void Server::ManageConnection(void)
                                 }
                             }
                         }
+                        if (!selected_location.empty())
+                        {
+                            if (path.length() != parse_path.length() - 1 && path != "/")
+                            {
+                                std::string file = path.substr(parse_path.length());
+                                if (!file.empty())
+                                    path = selected_location["root"] + file;
+                            }
+                            else
+                            {
+                                std::map<std::string, std::string>::const_iterator it_root = selected_location.find("root");
+                                std::map<std::string, std::string>::const_iterator it_default = selected_location.find("index");
+
+                                if (it_root != selected_location.end() && it_default != selected_location.end())
+                                    path = it_root->second + it_default->second;
+                            }
+                        }
+
+                        // Init response str
+                        std::string responseStr;
+
+                        // Execute cgi tester when file.bla
+                        // if (path.substr(path.find_last_of(".")) == ".bla")
+                        // {
+                            // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                            // abc.methodeType(path);
+                            // responseStr = abc.getResponseCgi();
+                        // }
+
+                        // Limit body size
+                        static std::map<int, int> clientBodySize;
+                        clientBodySize[event_fd] = request_end_pos;
+                        std::istringstream iss(bodymax);
+                        int result = 0;
+                        iss >> result;
+                        if (clientBodySize[event_fd] > result)
+                        {
+                            HttpResponse response;
+                            response.SetStatus(413);
+                            response.SetKeepAlive(false);
+                            std::string responseStr = response.ToString();
+                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+
+                            std::cout << Red << Server::GetTime() << " " << "Body too large from client " << event_fd << Reset_Color << std::endl;
+                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                            close(event_fd);
+                            clientBodySize.erase(event_fd);
+                            continue;
+                        }
 
                         // Check si keep-alive est dans les headers
                         const std::map<std::string, std::string> &headers = request.GetHeaders();
@@ -305,20 +338,24 @@ void Server::ManageConnection(void)
                         if (it != headers.end() && it->second == "keep-alive")
                             keep_alive = true;
 
-                        std::string responseStr;
+                        // std::string responseStr;
                         // Check if method is ok
                         std::set<std::string> allowed_methods;
                         std::istringstream methods_stream(selected_location["allow_methods"]);
                         std::string method;
                         while (methods_stream >> method)
                             allowed_methods.insert(method);
-                        if (allowed_methods.find(request.GetMethod()) == allowed_methods.end()) {
+                        if (allowed_methods.find(request.GetMethod()) == allowed_methods.end())
+                        {
                             HttpResponse response;
                             response.SetStatus(405);
                             response.SetHeader("Allow", selected_location["allow_methods"]);
                             std::string responseStr = response.ToString();
                             send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                            std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
+                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                             close(event_fd);
+                            clientBodySize.erase(event_fd);
                             continue;
                         }
 
@@ -334,9 +371,7 @@ void Server::ManageConnection(void)
                             // Http response
                             HttpResponse response;
                             try {
-                                if (path[path.size() - 1] == '/')
-                                    path += selected_location["index"];
-                                response.ServeFile(selected_location["root"], path, error404, error500);
+                                response.ServeFile(path, selected_location["index"], error404, error500);
                                 if (keep_alive == true)
                                     response.SetKeepAlive(true);
                                 else
@@ -344,7 +379,9 @@ void Server::ManageConnection(void)
                                 response.SetCookieSession(request);
                             } catch (std::exception &e) {
                                 std::cerr << e.what() << std::endl;
+                                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                                 close(event_fd);
+                                clientBodySize.erase(event_fd);
                             }
                             responseStr = response.ToString();
                         }
@@ -355,6 +392,7 @@ void Server::ManageConnection(void)
                             std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
                             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
                             close(event_fd);
+                            clientBodySize.erase(event_fd);
                         }
                     }
                     else
