@@ -3,7 +3,7 @@
 
 
 // Constructor & Destructor
-HttpRequest::HttpRequest(void) : _method(""), _path(""), _version(""), _body("")
+HttpRequest::HttpRequest(void) : _method(""), _path(""), _version("")
 {
 }
 
@@ -37,22 +37,23 @@ void trim(std::string &str)
 }
 void HttpRequest::ParseRequest(std::string buffer)
 {
-    std::replace(buffer.begin(), buffer.end(), '\r', ' ');
     std::stringstream ss(buffer);
     std::string method, path, version;
 
     // 1. Request Line
     std::getline(ss, method, ' ');
     std::getline(ss, path, ' ');
-    std::getline(ss, version);
+    std::getline(ss, version, '\r');
+    ss.get();
     trim(version);
-    // std::cout << method << " " << path << " " << version << std::endl;
+
     if (method.empty() || path.empty() || version.empty())
         throw HttpRequestLineException();
     if (method != "GET" && method != "POST" && method != "DELETE" && method != "HEAD")
         throw MethodException();
     if (version != "HTTP/1.1")
         throw HttpVersionException();
+
     this->_method = method;
     this->_path = path;
     this->_version = version;
@@ -60,60 +61,63 @@ void HttpRequest::ParseRequest(std::string buffer)
     // 2. Parse headers
     std::string header_line;
     bool isChunked = false;
-    while (std::getline(ss, header_line))
+
+    while (std::getline(ss, header_line, '\r'))
     {
+        ss.get(); // Discard '\n'
         trim(header_line);
-        if (header_line.empty())
-            break;
-        size_t slipt_pos = header_line.find(": ");
-        // std::cout << slipt_pos << " " << std::string::npos << std::endl;
-        if (slipt_pos != std::string::npos)
+        if (header_line.empty()) break;
+
+        size_t split_pos = header_line.find(':');
+        if (split_pos != std::string::npos && split_pos + 1 < header_line.size())
         {
-            std::string key = header_line.substr(0, slipt_pos);
-            std::string value = header_line.substr(slipt_pos + 2);
+            std::string key = header_line.substr(0, split_pos);
+            std::string value = header_line.substr(split_pos + 1);
+            trim(key);
+            trim(value);
             this->_headers[key] = value;
+
             if (key == "Transfer-Encoding" && value == "chunked")
                 isChunked = true;
-            // std::cout << "Header: " << key << ": " << value << std::endl;
         }
         else
+        {
             throw HeadersException();
+        }
     }
 
-    // 3. Get body
-    std::string body_content;
-    char c;
-    while (ss.get(c))
-        body_content.push_back(c);
+    // 3. Get body (binary-safe)
+    std::vector<char> body_content((std::istreambuf_iterator<char>(ss)), std::istreambuf_iterator<char>());
+
     if (isChunked)
         this->_body = decodeChunkedBody(body_content);
-    else if (!body_content.empty())
+    else
         this->_body = body_content;
 
     std::cout << Purple << Server::GetTime() << " " << this->_method << " " << this->_path << " " << this->_version << Reset_Color << std::endl;
 }
 
-std::string HttpRequest::decodeChunkedBody(const std::string &body)
+std::vector<char> HttpRequest::decodeChunkedBody(const std::vector<char> &body)
 {
-    std::istringstream stream(body);
-    std::string decodedBody;
+    std::istringstream stream(std::string(body.begin(), body.end())); // Créer un flux à partir des données
+    std::vector<char> decodedBody;
     std::string chunkSizeStr;
     size_t chunkSize = 0;
 
-    while (std::getline(stream, chunkSizeStr))
+    while (std::getline(stream, chunkSizeStr)) // Lire la taille du chunk
     {
         trim(chunkSizeStr);
         chunkSize = std::strtol(chunkSizeStr.c_str(), NULL, 16);
         if (chunkSize == 0)
             break;
 
-        char *chunkData = new char[chunkSize + 1];
-        stream.read(chunkData, chunkSize);
-        decodedBody.append(chunkData, chunkSize);
-        delete[] chunkData;
+        std::vector<char> chunkData(chunkSize); // Stocker les données du chunk
+        stream.read(chunkData.data(), chunkSize);
+        decodedBody.insert(decodedBody.end(), chunkData.begin(), chunkData.end());
 
-        // Passer le CRLF après le chunk
-        stream.ignore(2);
+        // Passer le CRLF après le chunk (vérification plus sûre)
+        if (stream.peek() == '\r') stream.get();
+        if (stream.peek() == '\n') stream.get();
     }
     return decodedBody;
 }
@@ -134,7 +138,7 @@ const std::map<std::string, std::string> &HttpRequest::GetHeaders(void)
 {
     return (this->_headers);
 }
-const std::string HttpRequest::GetBody(void)
+const std::vector<char> HttpRequest::GetBody(void)
 {
     return (this->_body);
 }
