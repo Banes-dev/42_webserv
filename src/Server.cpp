@@ -303,12 +303,12 @@ void Server::ManageConnection(void)
                         std::string responseStr;
 
                         // Execute cgi tester when file.bla
-                        // if (path.substr(path.find_last_of(".")) == ".bla")
-                        // {
-                            // CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
-                            // abc.methodeType(path);
-                            // responseStr = abc.getResponseCgi();
-                        // }
+                        if (path.substr(path.find_last_of(".")) == ".bla")
+                        {
+                            CgiExecution abc(selected_location["root"], selected_location["index"], selected_location["cgi_path"], request.GetMethod(), request.GetPath(), request.GetBody(), request.GetVersion(), request.GetHeaders());
+                            abc.methodeType(path);
+                            responseStr = abc.getResponseCgi();
+                        }
 
                         // Limit body size
                         static std::map<int, int> clientBodySize;
@@ -340,23 +340,26 @@ void Server::ManageConnection(void)
 
                         // std::string responseStr;
                         // Check if method is ok
-                        std::set<std::string> allowed_methods;
-                        std::istringstream methods_stream(selected_location["allow_methods"]);
-                        std::string method;
-                        while (methods_stream >> method)
-                            allowed_methods.insert(method);
-                        if (allowed_methods.find(request.GetMethod()) == allowed_methods.end())
+                        if (!selected_location["allow_methods"].empty())
                         {
-                            HttpResponse response;
-                            response.SetStatus(405);
-                            response.SetHeader("Allow", selected_location["allow_methods"]);
-                            std::string responseStr = response.ToString();
-                            send(event_fd, responseStr.c_str(), responseStr.size(), 0);
-                            std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
-                            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
-                            close(event_fd);
-                            clientBodySize.erase(event_fd);
-                            continue;
+                            std::set<std::string> allowed_methods;
+                            std::istringstream methods_stream(selected_location["allow_methods"]);
+                            std::string method;
+                            while (methods_stream >> method)
+                                allowed_methods.insert(method);
+                            if (allowed_methods.find(request.GetMethod()) == allowed_methods.end())
+                            {
+                                HttpResponse response;
+                                response.SetStatus(405);
+                                response.SetHeader("Allow", selected_location["allow_methods"]);
+                                std::string responseStr = response.ToString();
+                                send(event_fd, responseStr.c_str(), responseStr.size(), 0);
+                                std::cout << Red << Server::GetTime() << " " << "Client disconnect " << event_fd << Reset_Color << std::endl;
+                                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_fd, NULL);
+                                close(event_fd);
+                                clientBodySize.erase(event_fd);
+                                continue;
+                            }
                         }
 
                         // Cgi exec
